@@ -1,10 +1,25 @@
 # mcp-immojump
 
-MCP server for ImmoJUMP contacts orchestration.
+MCP server fuer ImmoJUMP Kontakte-Orchestrierung.
+
+Der Server ist absichtlich "thin": Alle Business-Regeln liegen im ImmoJUMP
+Backend. Dieses Repo kapselt nur den MCP-Tool-Zugriff auf die bestehenden API
+Endpoints.
 
 ## Scope
 
-This server is intentionally thin and delegates all contact business logic to the ImmoJUMP backend API:
+Abgedeckt sind aktuell:
+
+- Kontakt-Import als Preview und Commit
+- Job-Status, Resume, Cancel
+- Dubletten-Vorschau und Merge-Ausfuehrung
+
+Nicht im Scope:
+
+- Eigene Datenhaltung im MCP-Server
+- Duplizierte Business-Logik
+
+## Backend Endpoints (verbrauchte API)
 
 - `POST /api/contacts/import-unified`
 - `GET /api/contacts/import-jobs/<job_id>`
@@ -13,9 +28,9 @@ This server is intentionally thin and delegates all contact business logic to th
 - `GET /api/contacts/duplicates`
 - `POST /api/contacts/merge`
 
-## Allowed Base URLs
+## Allowlist fuer Base URLs
 
-Only these API base URLs are accepted:
+Nur diese ImmoJUMP URLs sind erlaubt:
 
 - `http://localhost:8081`
 - `https://beta.immojump.de`
@@ -23,13 +38,13 @@ Only these API base URLs are accepted:
 
 ## Credentials
 
-Each tool can receive credentials explicitly, or via env vars:
+Credentials koennen pro Tool-Call uebergeben oder als Env gesetzt werden:
 
 - `IMMOJUMP_BASE_URL`
 - `IMMOJUMP_TOKEN`
 - `IMMOJUMP_ORGANISATION_ID`
 
-## Tools
+## Verfuegbare MCP Tools
 
 - `connection_test`
 - `contacts_import_preview`
@@ -40,39 +55,80 @@ Each tool can receive credentials explicitly, or via env vars:
 - `contacts_duplicates_preview`
 - `contacts_merge_apply`
 
-## Run
+## Schnellstart (lokal)
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e .[test]
+
 export IMMOJUMP_BASE_URL=http://localhost:8081
-export IMMOJUMP_TOKEN=...
-export IMMOJUMP_ORGANISATION_ID=...
+export IMMOJUMP_TOKEN=<TOKEN>
+export IMMOJUMP_ORGANISATION_ID=<ORG_ID>
+
 mcp-immojump
 ```
 
-Default transport is `sse`.
+## Transport-Modi
 
-To run Codex-compatible HTTP transport:
+Default:
+
+- `sse`
+
+Codex-kompatibel:
 
 ```bash
 export IMMOJUMP_MCP_TRANSPORT=streamable-http
 mcp-immojump
 ```
 
-Supported values:
-- `sse`
-- `streamable-http`
+Weitere Werte:
+
 - `stdio`
 
-## Test
+## Codex CLI Beispiel
 
 ```bash
-pytest -q
+codex mcp add immojump-local --url http://127.0.0.1:8000/mcp
+codex mcp list --json
 ```
 
-## Quality
+Nach dem Test:
 
-- Lint: `ruff check src tests`
-- CI: GitHub Actions workflow in `.github/workflows/ci.yml`
+```bash
+codex mcp remove immojump-local
+```
+
+## Import Best Practice
+
+1. Immer zuerst `contacts_import_preview`
+2. Preview pruefen (`create/update/skip`)
+3. Dann `contacts_import_start`
+4. Job pollen mit `contacts_job_status`
+5. Bei Bedarf `contacts_job_resume` oder `contacts_job_cancel`
+
+## Entwicklung
+
+Tests:
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+Lint:
+
+```bash
+PYTHONPATH=src ruff check src tests
+```
+
+CI:
+
+- GitHub Actions unter `.github/workflows/ci.yml`
+
+## Security
+
+Bitte beachten:
+
+- Tokens nie ins Repo committen
+- Nur freigegebene Base URLs verwenden
+- Security Meldungen siehe `SECURITY.md`
