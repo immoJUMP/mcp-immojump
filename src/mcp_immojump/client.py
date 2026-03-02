@@ -64,6 +64,7 @@ class ImmojumpAPIClient:
             headers={
                 'Authorization': f'Bearer {credentials.token}',
                 'Accept': 'application/json',
+                'X-Organisation-Id': credentials.organisation_id,
             },
         )
 
@@ -181,5 +182,188 @@ class ImmojumpAPIClient:
             json={
                 'primary_id': primary_id,
                 'duplicate_ids': duplicate_ids,
+            },
+        )
+
+    def pipeline_count(self) -> Any:
+        return self._request(
+            'GET',
+            f'/api/pipelines/{self.credentials.organisation_id}/pipelines/count',
+        )
+
+    def pipeline_list(self) -> Any:
+        return self._request(
+            'GET',
+            f'/api/pipelines/{self.credentials.organisation_id}/pipelines',
+        )
+
+    def pipeline_get(self, *, pipeline_id: int | str) -> Any:
+        return self._request('GET', f'/api/pipelines/pipelines/{pipeline_id}')
+
+    def pipeline_create(self, *, data: dict[str, Any]) -> Any:
+        return self._request(
+            'POST',
+            f'/api/pipelines/{self.credentials.organisation_id}/pipelines',
+            json=data,
+        )
+
+    def pipeline_update(self, *, pipeline_id: int | str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'PUT',
+            f'/api/pipelines/pipelines/{pipeline_id}',
+            json=data,
+        )
+
+    def pipeline_delete(self, *, pipeline_id: int | str) -> Any:
+        return self._request('DELETE', f'/api/pipelines/pipelines/{pipeline_id}')
+
+    def pipeline_export(self, *, pipeline_id: int | str, format: str = 'yaml') -> Any:
+        return self._request(
+            'GET',
+            f'/api/pipelines/pipelines/{pipeline_id}/export',
+            params={'format': format},
+        )
+
+    def pipeline_import(self, *, payload: dict[str, Any] | str) -> Any:
+        params = {'organisation_id': self.credentials.organisation_id}
+        if isinstance(payload, str):
+            return self._request(
+                'POST',
+                '/api/pipelines/pipelines/import',
+                content=payload.encode('utf-8'),
+                params=params,
+                headers={'Content-Type': 'application/x-yaml'},
+            )
+        return self._request(
+            'POST',
+            '/api/pipelines/pipelines/import',
+            json=payload,
+            params=params,
+        )
+
+    def pipeline_statuses_list(self, *, pipeline_id: int | str) -> Any:
+        return self._request(
+            'GET',
+            f'/api/pipelines/pipelines/{pipeline_id}/statuses',
+        )
+
+    def pipeline_status_create(self, *, pipeline_id: int | str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'POST',
+            f'/api/pipelines/pipelines/{pipeline_id}/statuses',
+            json=data,
+        )
+
+    def pipeline_status_delete(self, *, pipeline_id: int | str, status_id: int | str) -> Any:
+        return self._request(
+            'DELETE',
+            f'/api/pipelines/pipelines/{pipeline_id}/statuses/{status_id}',
+        )
+
+    def status_list(self) -> Any:
+        return self._request(
+            'GET',
+            '/api/statuses/statuses',
+            params={'organisation_id': self.credentials.organisation_id},
+        )
+
+    def status_update(self, *, status_id: int | str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'PUT',
+            f'/api/statuses/statuses/{status_id}',
+            json=data,
+        )
+
+    def status_delete(self, *, status_id: int | str) -> Any:
+        return self._request('DELETE', f'/api/statuses/statuses/{status_id}')
+
+    def status_swap_order(
+        self,
+        *,
+        current_status_id: int | str,
+        target_status_id: int | str,
+        current_status_order: int,
+        target_status_order: int,
+    ) -> Any:
+        return self._request(
+            'PUT',
+            f'/api/statuses/statuses/swap/{current_status_id}/{target_status_id}',
+            json={
+                'current_status_order': current_status_order,
+                'target_status_order': target_status_order,
+            },
+        )
+
+    def status_inbound_aliases_list(self, *, status_id: int | str) -> Any:
+        return self._request(
+            'GET',
+            f'/api/statuses/statuses/{status_id}/inbound-aliases',
+        )
+
+    def status_inbound_alias_create(self, *, status_id: int | str, prefix: str | None = None) -> Any:
+        payload: dict[str, Any] = {}
+        if prefix:
+            payload['prefix'] = prefix
+        return self._request(
+            'POST',
+            f'/api/statuses/statuses/{status_id}/inbound-aliases',
+            json=payload,
+        )
+
+    def activity_templates_list(self) -> Any:
+        return self._request(
+            'GET',
+            '/api/activity-templates/activity_templates',
+            params={'organisation_id': self.credentials.organisation_id},
+        )
+
+    def activity_templates_recurring_list(self) -> Any:
+        return self._request(
+            'GET',
+            '/api/activity-templates/activity_templates/recurring',
+            params={'organisation_id': self.credentials.organisation_id},
+        )
+
+    def activity_templates_by_status(self, *, status_id: int | str) -> Any:
+        return self._request(
+            'GET',
+            f'/api/activity-templates/activity_templates/status/{status_id}',
+        )
+
+    def activity_template_get(self, *, template_id: str) -> Any:
+        return self._request(
+            'GET',
+            f'/api/activity-templates/activity_templates/{template_id}',
+        )
+
+    def activity_template_create(self, *, data: dict[str, Any]) -> Any:
+        payload = dict(data or {})
+        payload.setdefault('organisation_id', self.credentials.organisation_id)
+        return self._request(
+            'POST',
+            '/api/activity-templates/activity_templates',
+            json=payload,
+        )
+
+    def activity_template_update(self, *, template_id: str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'PUT',
+            f'/api/activity-templates/activity_templates/{template_id}',
+            json=data,
+        )
+
+    def activity_template_delete(self, *, template_id: str) -> Any:
+        return self._request(
+            'DELETE',
+            f'/api/activity-templates/activity_templates/{template_id}',
+        )
+
+    def activity_templates_batch_move(self, *, template_ids: list[str], target_status_id: int | str) -> Any:
+        return self._request(
+            'POST',
+            '/api/activity-templates/activity_templates/status/batch_move',
+            json={
+                'template_ids': template_ids,
+                'target_status_id': target_status_id,
             },
         )
