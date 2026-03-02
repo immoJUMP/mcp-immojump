@@ -102,6 +102,101 @@ bei jedem Tool-Call gesetzt werden.
 - `activity_template_delete`
 - `activity_templates_batch_move`
 
+## Safe Update fuer `activity_template_update`
+
+`activity_template_update` unterstuetzt eine sichere Update-Semantik fuer
+`outcomes/actions`:
+
+- Wenn `data.outcomes` fehlt:
+  - Outcomes bleiben unveraendert.
+- Wenn `data.outcomes` vorhanden ist:
+  - Standard ist Merge nach `outcome.id` (kein Full-Replace).
+- Full-Replace nur mit:
+  - `data.replace_outcomes: true`
+- Optionaler Concurrency-Guard:
+  - `data.if_updated_at: "<iso-timestamp>"`
+  - liefert `409`, wenn der Datensatz zwischenzeitlich geaendert wurde.
+- Optionales Preview:
+  - `data.dry_run: true`
+  - liefert strukturiertes Diff, ohne zu speichern.
+
+Zusatzvalidierung auf Action-Ebene:
+
+- `STATUS_CHANGE` erfordert `target_status_id`.
+- Falls `target_status_name` mitgegeben wird, muss der Name zur ID passen.
+- `CREATE_ACTIVITY` mit `template_id` wird auf Existenz und Organisationsscope
+  validiert.
+
+### Beispiel: Nur Titel aendern (Outcomes bleiben unveraendert)
+
+```json
+{
+  "template_id": "a7d0f0b2-...",
+  "data": {
+    "title": "Neuer Titel",
+    "description": "Textupdate"
+  }
+}
+```
+
+### Beispiel: Einen Outcome mergen (ohne Full-Replace)
+
+```json
+{
+  "template_id": "a7d0f0b2-...",
+  "data": {
+    "outcomes": [
+      {
+        "id": "f2c0a8c1-...",
+        "label": "Absage final"
+      }
+    ]
+  }
+}
+```
+
+### Beispiel: Vollstaendiges Replace der Outcomes
+
+```json
+{
+  "template_id": "a7d0f0b2-...",
+  "data": {
+    "replace_outcomes": true,
+    "outcomes": [
+      {
+        "id": "9f8f9c57-...",
+        "key": "archive",
+        "label": "Archivieren",
+        "actions": [
+          {
+            "type": "STATUS_CHANGE",
+            "target_status_id": 17
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Beispiel: Dry-Run mit Concurrency-Guard
+
+```json
+{
+  "template_id": "a7d0f0b2-...",
+  "data": {
+    "if_updated_at": "2026-03-02T10:00:00+00:00",
+    "dry_run": true,
+    "outcomes": [
+      {
+        "id": "f2c0a8c1-...",
+        "label": "Absage final"
+      }
+    ]
+  }
+}
+```
+
 ## Schnellstart (lokal)
 
 ```bash
