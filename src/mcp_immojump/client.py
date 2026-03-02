@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import copy
+import logging
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +15,9 @@ ALLOWED_BASE_URLS = {
     'https://beta.immojump.de',
     'https://immojump.de',
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImmojumpAPIError(RuntimeError):
@@ -46,6 +52,26 @@ class ImmojumpCredentials:
 
 def normalize_base_url(base_url: str) -> str:
     return str(base_url or '').strip().rstrip('/')
+
+
+def _normalize_id(value: Any) -> str:
+    return str(value or '').strip()
+
+
+def _canonical_timestamp(value: Any) -> str | None:
+    text = str(value or '').strip()
+    if not text:
+        return None
+    try:
+        if text.endswith('Z'):
+            text = text[:-1] + '+00:00'
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat()
+    except ValueError:
+        # Keep raw value if timestamp parsing fails on either side.
+        return str(value).strip()
 
 
 class ImmojumpAPIClient:
@@ -346,10 +372,52 @@ class ImmojumpAPIClient:
         )
 
     def activity_template_update(self, *, template_id: str, data: dict[str, Any]) -> Any:
+        payload = dict(data or {})
+        replace_outcomes = bool(payload.pop('replace_outcomes', False))
+        dry_run = bool(payload.pop('dry_run', False))
+        if_updated_at = payload.pop('if_updated_at', None)
+
+        current_template = self.activity_template_get(template_id=template_id)
+        if not isinstance(current_template, dict):
+            raise ImmojumpAPIError(500, 'Unexpected activity template response format')
+
+        self._assert_if_updated_at_matches(current_template=current_template, if_updated_at=if_updated_at)
+
+        if 'outcomes' in payload:
+            incoming_outcomes = payload.get('outcomes')
+            if incoming_outcomes is None:
+                incoming_outcomes = []
+            if not isinstance(incoming_outcomes, list):
+                raise ImmojumpAPIError(400, 'outcomes must be a list')
+
+            existing_outcomes = current_template.get('outcomes') or []
+            if not isinstance(existing_outcomes, list):
+                existing_outcomes = []
+            if replace_outcomes:
+                resolved_outcomes = copy.deepcopy(incoming_outcomes)
+            else:
+                resolved_outcomes = self._merge_outcomes_by_id(
+                    existing_outcomes=existing_outcomes,
+                    incoming_outcomes=incoming_outcomes,
+                )
+            self._validate_outcome_actions(outcomes=resolved_outcomes)
+            payload['outcomes'] = resolved_outcomes
+
+        preview = self._build_update_preview(
+            template_id=template_id,
+            current_template=current_template,
+            update_payload=payload,
+            replace_outcomes=replace_outcomes,
+        )
+        self._log_nested_update_changes(template_id=template_id, preview=preview)
+
+        if dry_run:
+            return preview
+
         return self._request(
             'PUT',
             f'/api/activity-templates/activity_templates/{template_id}',
-            json=data,
+            json=payload,
         )
 
     def activity_template_delete(self, *, template_id: str) -> Any:
@@ -366,4 +434,275 @@ class ImmojumpAPIClient:
                 'template_ids': template_ids,
                 'target_status_id': target_status_id,
             },
+        )
+
+    def _assert_if_updated_at_matches(self, *, current_template: dict[str, Any], if_updated_at: Any) -> None:
+        if if_updated_at is None:
+            return
+        expected = _canonical_timestamp(if_updated_at)
+        actual = _canonical_timestamp(current_template.get('updated_at'))
+        if expected != actual:
+            raise ImmojumpAPIError(
+                409,
+                'Template wurde zwischenzeitlich geändert. '
+                'Bitte neu laden und Update erneut ausführen.',
+            )
+
+    @staticmethod
+    def _merge_outcomes_by_id(
+        *,
+        existing_outcomes: list[dict[str, Any]],
+        incoming_outcomes: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        merged: list[dict[str, Any]] = [copy.deepcopy(outcome) for outcome in existing_outcomes]
+        existing_by_id: dict[str, dict[str, Any]] = {}
+
+        for outcome in merged:
+            outcome_id = _normalize_id(outcome.get('id'))
+            if outcome_id:
+                existing_by_id[outcome_id] = outcome
+
+        for incoming in incoming_outcomes:
+            if not isinstance(incoming, dict):
+                raise ImmojumpAPIError(400, 'Each outcome must be an object')
+            incoming_copy = copy.deepcopy(incoming)
+            incoming_id = _normalize_id(incoming_copy.get('id'))
+            target = existing_by_id.get(incoming_id) if incoming_id else None
+            if target is None:
+                merged.append(incoming_copy)
+                continue
+            for key, value in incoming_copy.items():
+                target[key] = value
+
+        return merged
+
+    def _status_index(self) -> dict[str, dict[str, Any]]:
+        statuses = self.status_list()
+        index: dict[str, dict[str, Any]] = {}
+        if not isinstance(statuses, list):
+            return index
+        for status in statuses:
+            if not isinstance(status, dict):
+                continue
+            key = _normalize_id(status.get('id'))
+            if key:
+                index[key] = status
+        return index
+
+    @staticmethod
+    def _status_name(status_payload: dict[str, Any]) -> str:
+        return str(status_payload.get('name') or '').strip()
+
+    @staticmethod
+    def _status_org_id(status_payload: dict[str, Any]) -> str:
+        pipeline = status_payload.get('pipeline') or {}
+        return _normalize_id(pipeline.get('organisation_id'))
+
+    def _resolve_template_org_id(
+        self,
+        *,
+        template_payload: dict[str, Any],
+        status_index: dict[str, dict[str, Any]],
+    ) -> str:
+        direct_org = _normalize_id(template_payload.get('organisation_id'))
+        if direct_org:
+            return direct_org
+        status_id = _normalize_id(template_payload.get('status_id'))
+        if status_id and status_id in status_index:
+            return self._status_org_id(status_index[status_id])
+        return ''
+
+    def _validate_outcome_actions(self, *, outcomes: list[dict[str, Any]]) -> None:
+        status_index: dict[str, dict[str, Any]] | None = None
+        template_cache: dict[str, dict[str, Any]] = {}
+
+        def _load_status_index() -> dict[str, dict[str, Any]]:
+            nonlocal status_index
+            if status_index is None:
+                status_index = self._status_index()
+            return status_index
+
+        for outcome in outcomes:
+            if not isinstance(outcome, dict):
+                raise ImmojumpAPIError(400, 'Each outcome must be an object')
+            actions = outcome.get('actions') or []
+            if not isinstance(actions, list):
+                raise ImmojumpAPIError(400, 'outcome.actions must be a list')
+
+            for action in actions:
+                if not isinstance(action, dict):
+                    raise ImmojumpAPIError(400, 'Each action must be an object')
+                action_type = str(action.get('type') or '').upper().strip()
+                if action_type == 'STATUS_CHANGE':
+                    target_status_id = _normalize_id(action.get('target_status_id'))
+                    if not target_status_id:
+                        raise ImmojumpAPIError(400, 'STATUS_CHANGE action requires target_status_id')
+                    status_payload = _load_status_index().get(target_status_id)
+                    if not status_payload:
+                        raise ImmojumpAPIError(400, f'STATUS_CHANGE target_status_id not found: {target_status_id}')
+                    target_status_name = action.get('target_status_name')
+                    if target_status_name is not None:
+                        expected_name = self._status_name(status_payload)
+                        incoming_name = str(target_status_name).strip()
+                        if incoming_name != expected_name:
+                            raise ImmojumpAPIError(
+                                400,
+                                f'target_status_name mismatch for status {target_status_id}: '
+                                f"expected '{expected_name}', got '{incoming_name}'",
+                            )
+
+                if action_type == 'CREATE_ACTIVITY':
+                    template_id = _normalize_id(action.get('template_id'))
+                    if not template_id:
+                        continue
+                    target_template = template_cache.get(template_id)
+                    if target_template is None:
+                        payload = self.activity_template_get(template_id=template_id)
+                        if not isinstance(payload, dict):
+                            raise ImmojumpAPIError(400, 'Invalid template payload for CREATE_ACTIVITY')
+                        target_template = payload
+                        template_cache[template_id] = target_template
+                    target_org = self._resolve_template_org_id(
+                        template_payload=target_template,
+                        status_index=_load_status_index(),
+                    )
+                    if not target_org:
+                        raise ImmojumpAPIError(
+                            400,
+                            f'Cannot resolve organisation for CREATE_ACTIVITY template_id {template_id}',
+                        )
+                    if target_org != self.credentials.organisation_id:
+                        raise ImmojumpAPIError(
+                            400,
+                            f'CREATE_ACTIVITY template_id {template_id} belongs to another organisation',
+                        )
+
+    @staticmethod
+    def _outcome_identity(outcome: dict[str, Any], index: int) -> str:
+        outcome_id = _normalize_id(outcome.get('id'))
+        if outcome_id:
+            return f'id:{outcome_id}'
+        key = _normalize_id(outcome.get('key'))
+        if key:
+            return f'key:{key}'
+        return f'index:{index}'
+
+    @classmethod
+    def _build_outcomes_diff(
+        cls,
+        *,
+        old_outcomes: list[dict[str, Any]],
+        new_outcomes: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        old_map = {cls._outcome_identity(outcome, idx): outcome for idx, outcome in enumerate(old_outcomes)}
+        new_map = {cls._outcome_identity(outcome, idx): outcome for idx, outcome in enumerate(new_outcomes)}
+        keys = sorted(set(old_map.keys()) | set(new_map.keys()))
+
+        changed: list[dict[str, Any]] = []
+        added: list[dict[str, Any]] = []
+        removed: list[dict[str, Any]] = []
+        action_changes: list[dict[str, Any]] = []
+
+        for key in keys:
+            old_item = old_map.get(key)
+            new_item = new_map.get(key)
+            if old_item is None and new_item is not None:
+                added.append({'id': new_item.get('id'), 'key': new_item.get('key'), 'new': new_item})
+                if new_item.get('actions'):
+                    action_changes.append(
+                        {'id': new_item.get('id'), 'key': new_item.get('key'), 'old': None, 'new': new_item.get('actions')}
+                    )
+                continue
+            if new_item is None and old_item is not None:
+                removed.append({'id': old_item.get('id'), 'key': old_item.get('key'), 'old': old_item})
+                if old_item.get('actions'):
+                    action_changes.append(
+                        {'id': old_item.get('id'), 'key': old_item.get('key'), 'old': old_item.get('actions'), 'new': None}
+                    )
+                continue
+            if old_item == new_item:
+                continue
+            field_diff: dict[str, Any] = {}
+            for field_name in sorted(set(old_item.keys()) | set(new_item.keys())):
+                old_value = old_item.get(field_name)
+                new_value = new_item.get(field_name)
+                if old_value != new_value:
+                    field_diff[field_name] = {'old': old_value, 'new': new_value}
+            if 'actions' in field_diff:
+                action_changes.append(
+                    {
+                        'id': new_item.get('id') or old_item.get('id'),
+                        'key': new_item.get('key') or old_item.get('key'),
+                        'old': field_diff['actions']['old'],
+                        'new': field_diff['actions']['new'],
+                    }
+                )
+            changed.append(
+                {
+                    'id': new_item.get('id') or old_item.get('id'),
+                    'key': new_item.get('key') or old_item.get('key'),
+                    'fields': field_diff,
+                }
+            )
+
+        return {
+            'changed': changed,
+            'added': added,
+            'removed': removed,
+            'action_changes': action_changes,
+        }
+
+    @classmethod
+    def _build_update_preview(
+        cls,
+        *,
+        template_id: str,
+        current_template: dict[str, Any],
+        update_payload: dict[str, Any],
+        replace_outcomes: bool,
+    ) -> dict[str, Any]:
+        predicted_template = copy.deepcopy(current_template)
+        for field_name, value in update_payload.items():
+            predicted_template[field_name] = copy.deepcopy(value)
+
+        changed_fields: dict[str, Any] = {}
+        for field_name in sorted(set(current_template.keys()) | set(predicted_template.keys())):
+            if field_name == 'outcomes':
+                continue
+            old_value = current_template.get(field_name)
+            new_value = predicted_template.get(field_name)
+            if old_value != new_value:
+                changed_fields[field_name] = {'old': old_value, 'new': new_value}
+
+        old_outcomes = current_template.get('outcomes') if isinstance(current_template.get('outcomes'), list) else []
+        new_outcomes = predicted_template.get('outcomes') if isinstance(predicted_template.get('outcomes'), list) else []
+        outcomes_diff = cls._build_outcomes_diff(old_outcomes=old_outcomes, new_outcomes=new_outcomes)
+        if outcomes_diff['changed'] or outcomes_diff['added'] or outcomes_diff['removed']:
+            changed_fields['outcomes'] = outcomes_diff
+
+        return {
+            'dry_run': True,
+            'template_id': str(template_id),
+            'replace_outcomes': bool(replace_outcomes),
+            'has_changes': bool(changed_fields),
+            'changed_fields': changed_fields,
+            'request_payload': copy.deepcopy(update_payload),
+        }
+
+    def _log_nested_update_changes(self, *, template_id: str, preview: dict[str, Any]) -> None:
+        changed_fields = preview.get('changed_fields') or {}
+        outcomes_diff = changed_fields.get('outcomes') or {}
+        if not outcomes_diff:
+            return
+        changed_outcome_ids = []
+        for block in ('changed', 'added', 'removed'):
+            for item in outcomes_diff.get(block, []):
+                outcome_ref = _normalize_id(item.get('id')) or _normalize_id(item.get('key'))
+                if outcome_ref:
+                    changed_outcome_ids.append(outcome_ref)
+        logger.info(
+            'activity_template_update_nested_changes template_id=%s outcome_refs=%s action_changes=%s',
+            template_id,
+            changed_outcome_ids,
+            outcomes_diff.get('action_changes', []),
         )

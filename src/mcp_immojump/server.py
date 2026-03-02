@@ -724,7 +724,13 @@ def activity_template_update(
     organisation_id,
     base_url=None,
 ):
-    """Update activity template."""
+    """Update activity template with safe outcome semantics.
+
+    Payload controls in `data`:
+    - `replace_outcomes` (bool, optional): default false, merge by outcome.id.
+    - `if_updated_at` (string, optional): optimistic concurrency guard (409 on mismatch).
+    - `dry_run` (bool, optional): return diff preview without persisting.
+    """
 
     payload = _require_dict(field_name='data', value=data)
     result = _call_with_client(
