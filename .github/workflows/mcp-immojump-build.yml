@@ -26,10 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Validate registry credentials
-        if: ${{ secrets.REGISTRY_USERNAME == '' || secrets.REGISTRY_PASSWORD == '' }}
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         run: |
-          echo "Missing REGISTRY_USERNAME or REGISTRY_PASSWORD secret."
-          exit 1
+          if [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ]; then
+            echo "Missing REGISTRY_USERNAME or REGISTRY_PASSWORD secret."
+            exit 1
+          fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
