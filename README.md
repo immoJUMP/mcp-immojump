@@ -1,6 +1,6 @@
 # mcp-immojump
 
-MCP server fuer ImmoJUMP Kontakte-Orchestrierung.
+MCP server fuer ImmoJUMP Kontakte- und Pipeline-Orchestrierung.
 
 Der Server ist absichtlich "thin": Alle Business-Regeln liegen im ImmoJUMP
 Backend. Dieses Repo kapselt nur den MCP-Tool-Zugriff auf die bestehenden API
@@ -13,6 +13,9 @@ Abgedeckt sind aktuell:
 - Kontakt-Import als Preview und Commit
 - Job-Status, Resume, Cancel
 - Dubletten-Vorschau und Merge-Ausfuehrung
+- Pipeline-Management (CRUD, Import/Export)
+- Status-Management (CRUD, Reorder, Inbound-Aliases)
+- Activity-Template-Management fuer den Workflow-Editor
 
 Nicht im Scope:
 
@@ -27,6 +30,22 @@ Nicht im Scope:
 - `POST /api/contacts/import-jobs/<job_id>/cancel`
 - `GET /api/contacts/duplicates`
 - `POST /api/contacts/merge`
+- `GET /api/pipelines/<orga_id>/pipelines/count`
+- `GET|POST /api/pipelines/<orga_id>/pipelines`
+- `GET|PUT|DELETE /api/pipelines/pipelines/<pipeline_id>`
+- `GET|POST /api/pipelines/pipelines/<pipeline_id>/statuses`
+- `DELETE /api/pipelines/pipelines/<pipeline_id>/statuses/<status_id>`
+- `GET /api/pipelines/pipelines/<pipeline_id>/export`
+- `POST /api/pipelines/pipelines/import`
+- `GET /api/statuses/statuses`
+- `PUT|DELETE /api/statuses/statuses/<status_id>`
+- `PUT /api/statuses/statuses/swap/<current_status_id>/<target_status_id>`
+- `GET|POST /api/statuses/statuses/<status_id>/inbound-aliases`
+- `GET|POST /api/activity-templates/activity_templates`
+- `GET /api/activity-templates/activity_templates/recurring`
+- `GET /api/activity-templates/activity_templates/status/<status_id>`
+- `GET|PUT|DELETE /api/activity-templates/activity_templates/<template_id>`
+- `POST /api/activity-templates/activity_templates/status/batch_move`
 
 ## Allowlist fuer Base URLs
 
@@ -38,11 +57,14 @@ Nur diese ImmoJUMP URLs sind erlaubt:
 
 ## Credentials
 
-Credentials koennen pro Tool-Call uebergeben oder als Env gesetzt werden:
+Credentials werden pro Tool-Call uebergeben:
 
-- `IMMOJUMP_BASE_URL`
-- `IMMOJUMP_TOKEN`
-- `IMMOJUMP_ORGANISATION_ID`
+- `base_url` (optional; fallback: `IMMOJUMP_BASE_URL`)
+- `token` (required)
+- `organisation_id` (required)
+
+Hinweis: Der Server speichert keine Tokens. `token` und `organisation_id` muessen
+bei jedem Tool-Call gesetzt werden.
 
 ## Verfuegbare MCP Tools
 
@@ -54,6 +76,31 @@ Credentials koennen pro Tool-Call uebergeben oder als Env gesetzt werden:
 - `contacts_job_cancel`
 - `contacts_duplicates_preview`
 - `contacts_merge_apply`
+- `pipeline_count`
+- `pipeline_list`
+- `pipeline_get`
+- `pipeline_create`
+- `pipeline_update`
+- `pipeline_delete`
+- `pipeline_export`
+- `pipeline_import`
+- `pipeline_statuses_list`
+- `pipeline_status_create`
+- `pipeline_status_delete`
+- `status_list`
+- `status_update`
+- `status_delete`
+- `status_swap_order`
+- `status_inbound_aliases_list`
+- `status_inbound_alias_create`
+- `activity_templates_list`
+- `activity_templates_recurring_list`
+- `activity_templates_by_status`
+- `activity_template_get`
+- `activity_template_create`
+- `activity_template_update`
+- `activity_template_delete`
+- `activity_templates_batch_move`
 
 ## Schnellstart (lokal)
 
@@ -63,11 +110,33 @@ source .venv/bin/activate
 pip install -e .[test]
 
 export IMMOJUMP_BASE_URL=http://localhost:8081
-export IMMOJUMP_TOKEN=<TOKEN>
-export IMMOJUMP_ORGANISATION_ID=<ORG_ID>
 
 mcp-immojump
 ```
+
+## Docker (lokal)
+
+Image bauen:
+
+```bash
+docker build -t mcp-immojump:local .
+```
+
+Container starten:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e IMMOJUMP_BASE_URL=https://immojump.de \
+  -e IMMOJUMP_MCP_TRANSPORT=streamable-http \
+  -e IMMOJUMP_MCP_HOST=0.0.0.0 \
+  -e IMMOJUMP_MCP_PORT=8000 \
+  mcp-immojump:local
+```
+
+Hinweis:
+
+- `token` und `organisation_id` werden weiterhin pro Tool-Call uebergeben.
+- Der Container lauscht standardmaessig auf `0.0.0.0:8000`.
 
 ## Transport-Modi
 
