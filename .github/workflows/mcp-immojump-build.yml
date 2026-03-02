@@ -1,0 +1,79 @@
+name: Build MCP Immojump Image
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: 'Push image to registry'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: registry.cs95.de
+  IMAGE_REPO: ${{ secrets.REGISTRY_USERNAME }}/mcp-immojump
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate registry credentials
+        if: ${{ secrets.REGISTRY_USERNAME == '' || secrets.REGISTRY_PASSWORD == '' }}
+        run: |
+          echo "Missing REGISTRY_USERNAME or REGISTRY_PASSWORD secret."
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install '.[test]'
+
+      - name: Run tests
+        run: PYTHONPATH=src python -m pytest -q tests
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=weekly,enable=${{ github.event_name == 'schedule' }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
