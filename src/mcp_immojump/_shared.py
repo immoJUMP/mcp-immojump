@@ -1,16 +1,13 @@
-"""Shared MCP application instance and helpers.
+"""Shared helpers used by all server variants and tool modules.
 
-All tool modules import from here to register tools on the same ``mcp``
-instance.  ``server.py`` re-exports the helpers so existing tests keep
-working without changes.
+This module intentionally does NOT create a ``FastMCP`` instance — each
+server entry point (``servers/*.py`` or ``server.py``) creates its own.
 """
 
 from __future__ import annotations
 
 import os
 from typing import Any
-
-from mcp.server.fastmcp import FastMCP
 
 from .client import ImmojumpAPIClient, ImmojumpCredentials
 
@@ -34,17 +31,6 @@ def _resolve_mcp_port() -> int:
     except (TypeError, ValueError) as exc:
         raise ValueError(f'Invalid MCP port: {raw}') from exc
 
-
-mcp = FastMCP(
-    'immojump',
-    host=_resolve_mcp_host(),
-    port=_resolve_mcp_port(),
-)
-
-
-# ---------------------------------------------------------------------------
-# Shared helpers used by every tool module
-# ---------------------------------------------------------------------------
 
 def _require_text(*, field_name: str, value: str | None) -> str:
     resolved = str(value or '').strip()

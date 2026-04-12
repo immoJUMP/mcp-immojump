@@ -1,25 +1,5 @@
-"""Domain tool modules – imported to register tools on the shared ``mcp`` instance."""
+"""Domain tool modules.
 
-from . import (  # noqa: F401
-    connection,
-    immobilien,
-    contacts,
-    activities,
-    activity_templates,
-    custom_fields,
-    deals,
-    tickets,
-    documents,
-    loans,
-    milestones,
-    units,
-    tags,
-    organisation,
-    feed,
-    email_messages,
-    valuation,
-    user,
-    investor,
-    pipelines,
-    statuses,
-)
+Each module exposes a ``register(mcp)`` function that registers its tools
+on the given FastMCP instance.
+"""
