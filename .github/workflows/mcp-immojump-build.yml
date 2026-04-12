@@ -99,7 +99,7 @@ jobs:
             exit 0
           fi
           mkdir -p ~/.kube
-          echo "${KUBECONFIG_DATA}" | base64 -d > ~/.kube/config
+          echo "${KUBECONFIG_DATA}" > ~/.kube/config
           kubectl rollout restart deployment/mcp-immojump -n calc2-immojump-de
           kubectl rollout status deployment/mcp-immojump -n calc2-immojump-de --timeout=120s
           rm -f ~/.kube/config
