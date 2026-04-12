@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def user_me(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get current user profile (name, email, settings, organisations)."""
@@ -21,8 +21,8 @@ def register(mcp):
     @mcp.tool()
     def user_update_profile(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update the current user's profile.

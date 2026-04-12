@@ -6,8 +6,8 @@ from .._shared import _call_with_client, _ok
 def register(mcp):
     @mcp.tool()
     def pipeline_count(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Return pipeline count for organisation."""
@@ -22,8 +22,8 @@ def register(mcp):
 
     @mcp.tool()
     def pipeline_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all pipelines for organisation."""
@@ -39,8 +39,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_get(
         pipeline_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get a single pipeline by id."""
@@ -56,8 +56,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_create(
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         entity_type='immobilie',
         description=None,
         icon=None,
@@ -88,8 +88,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_update(
         pipeline_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         name=None,
         entity_type=None,
         description=None,
@@ -128,8 +128,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_delete(
         pipeline_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a pipeline."""
@@ -145,8 +145,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_export(
         pipeline_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         format='yaml',
         base_url=None,
     ):
@@ -163,8 +163,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_import(
         payload,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Import a pipeline definition from YAML string or JSON object."""
@@ -183,8 +183,8 @@ def register(mcp):
     @mcp.tool()
     def pipeline_statuses_list(
         pipeline_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List statuses for a pipeline."""
@@ -201,8 +201,8 @@ def register(mcp):
     def pipeline_status_create(
         pipeline_id,
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         entity_type=None,
         order=None,
         base_url=None,
@@ -227,8 +227,8 @@ def register(mcp):
     def pipeline_status_delete(
         pipeline_id,
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a status through pipeline-scoped endpoint."""

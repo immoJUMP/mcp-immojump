@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def activities_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         page=1,
         per_page=25,
         search=None,
@@ -37,8 +37,8 @@ def register(mcp):
     @mcp.tool()
     def activities_get(
         activity_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single activity by ID."""
@@ -54,8 +54,8 @@ def register(mcp):
     @mcp.tool()
     def activities_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new activity/task.
@@ -77,8 +77,8 @@ def register(mcp):
     def activities_create_for_property(
         immobilie_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create an activity linked to a specific property."""
@@ -98,8 +98,8 @@ def register(mcp):
     def activities_update(
         activity_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an existing activity."""
@@ -116,8 +116,8 @@ def register(mcp):
     @mcp.tool()
     def activities_delete(
         activity_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete an activity permanently."""
@@ -133,8 +133,8 @@ def register(mcp):
     @mcp.tool()
     def activities_list_by_property(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all activities linked to a specific property."""
@@ -149,8 +149,8 @@ def register(mcp):
 
     @mcp.tool()
     def activities_statistics(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get activity statistics for the organisation (counts by status/type)."""
@@ -166,8 +166,8 @@ def register(mcp):
     @mcp.tool()
     def activities_structure_description(
         text,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Use AI to structure a free-text activity description into a proper format."""
@@ -182,8 +182,8 @@ def register(mcp):
 
     @mcp.tool()
     def activities_calendar_generate_link(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Generate an iCalendar (.ics) sharing link for activities.

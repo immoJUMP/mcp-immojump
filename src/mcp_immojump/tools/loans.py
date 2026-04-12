@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list
 def register(mcp):
     @mcp.tool()
     def loans_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all loans for the organisation."""
@@ -21,8 +21,8 @@ def register(mcp):
     @mcp.tool()
     def loans_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new loan.
@@ -44,8 +44,8 @@ def register(mcp):
     def loans_update(
         loan_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an existing loan."""
@@ -62,8 +62,8 @@ def register(mcp):
     @mcp.tool()
     def loans_delete(
         loan_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a loan permanently."""
@@ -79,8 +79,8 @@ def register(mcp):
     @mcp.tool()
     def loans_list_by_property(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all loans for a specific property."""
@@ -96,8 +96,8 @@ def register(mcp):
     @mcp.tool()
     def loans_outstanding(
         loan_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Calculate outstanding amounts for the given loan IDs."""

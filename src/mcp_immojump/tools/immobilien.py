@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def immobilien_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         page=1,
         per_page=25,
         base_url=None,
@@ -25,8 +25,8 @@ def register(mcp):
 
     @mcp.tool()
     def immobilien_search(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         search=None,
         status_ids=None,
         tag_ids=None,
@@ -57,8 +57,8 @@ def register(mcp):
 
     @mcp.tool()
     def immobilien_count(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Return the total number of properties for the organisation."""
@@ -74,8 +74,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_get(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single property by ID.
@@ -94,8 +94,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new property.
@@ -118,8 +118,8 @@ def register(mcp):
     def immobilien_update(
         immobilie_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Full update of a property (PUT -- replaces all fields).
@@ -140,8 +140,8 @@ def register(mcp):
     def immobilien_patch(
         immobilie_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Partial update of a property (PATCH -- only provided fields change).
@@ -162,8 +162,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_delete(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a property permanently."""
@@ -179,8 +179,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_duplicate(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a copy of an existing property.
@@ -200,8 +200,8 @@ def register(mcp):
     def immobilien_transfer(
         immobilie_id,
         target_organisation_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Transfer a property to another organisation."""
@@ -220,8 +220,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_contacts(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List contacts linked to a property (sellers, buyers, agents, etc.)."""
@@ -237,8 +237,8 @@ def register(mcp):
     @mcp.tool()
     def immobilien_split_units(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Split a multi-family property into separate individual properties.

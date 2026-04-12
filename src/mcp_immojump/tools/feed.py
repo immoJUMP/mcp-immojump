@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def feed_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         cursor=None,
         channel_id=None,
         limit=25,
@@ -31,8 +31,8 @@ def register(mcp):
     def feed_by_context(
         context_type,
         context_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get feed posts for a specific context (property, contact, deal).
@@ -54,8 +54,8 @@ def register(mcp):
     @mcp.tool()
     def feed_create_post(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new feed post.
@@ -76,8 +76,8 @@ def register(mcp):
     def feed_edit_post(
         event_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Edit an existing feed post."""
@@ -95,8 +95,8 @@ def register(mcp):
     def feed_toggle_reaction(
         event_id,
         emoji,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Toggle an emoji reaction on a feed post."""
@@ -112,8 +112,8 @@ def register(mcp):
     @mcp.tool()
     def feed_list_comments(
         event_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List comments on a feed post."""
@@ -130,8 +130,8 @@ def register(mcp):
     def feed_add_comment(
         event_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Add a comment to a feed post.
@@ -152,8 +152,8 @@ def register(mcp):
     def feed_edit_comment(
         comment_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Edit a comment on a feed post."""
@@ -170,8 +170,8 @@ def register(mcp):
     @mcp.tool()
     def feed_delete_comment(
         comment_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a comment from a feed post."""
@@ -187,8 +187,8 @@ def register(mcp):
     @mcp.tool()
     def feed_comment_object(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Comment on a specific object (property, contact, deal).
@@ -207,8 +207,8 @@ def register(mcp):
 
     @mcp.tool()
     def feed_channels(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List feed channels for the organisation."""
@@ -224,8 +224,8 @@ def register(mcp):
     @mcp.tool()
     def feed_create_channel(
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new feed channel."""
@@ -242,8 +242,8 @@ def register(mcp):
     def feed_rename_channel(
         channel_id,
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Rename a feed channel."""
@@ -259,8 +259,8 @@ def register(mcp):
     @mcp.tool()
     def feed_delete_channel(
         channel_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a feed channel."""

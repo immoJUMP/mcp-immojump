@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok
 def register(mcp):
     @mcp.tool()
     def connection_test(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Validate API credentials and organisation access.

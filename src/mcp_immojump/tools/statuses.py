@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def status_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all statuses for organisation."""
@@ -22,8 +22,8 @@ def register(mcp):
     def status_update(
         status_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update status fields."""
@@ -40,8 +40,8 @@ def register(mcp):
     @mcp.tool()
     def status_delete(
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete status by id."""
@@ -60,8 +60,8 @@ def register(mcp):
         target_status_id,
         current_status_order,
         target_status_order,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Swap order of two statuses in same pipeline."""
@@ -82,8 +82,8 @@ def register(mcp):
     @mcp.tool()
     def status_inbound_aliases_list(
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List inbound email aliases for a status."""
@@ -99,8 +99,8 @@ def register(mcp):
     @mcp.tool()
     def status_inbound_alias_create(
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         prefix=None,
         base_url=None,
     ):

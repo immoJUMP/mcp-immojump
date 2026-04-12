@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok
 def register(mcp):
     @mcp.tool()
     def documents_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         immobilie_id=None,
         page=1,
         per_page=25,
@@ -31,8 +31,8 @@ def register(mcp):
     @mcp.tool()
     def documents_delete(
         document_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a document permanently."""
@@ -49,8 +49,8 @@ def register(mcp):
     def documents_rename(
         document_id,
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Rename a document."""
@@ -66,8 +66,8 @@ def register(mcp):
     @mcp.tool()
     def documents_analyze(
         document_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Trigger AI analysis on a document (quick summary)."""
@@ -83,8 +83,8 @@ def register(mcp):
     @mcp.tool()
     def documents_analyze_details(
         document_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Trigger detailed AI analysis on a document.
@@ -103,8 +103,8 @@ def register(mcp):
     @mcp.tool()
     def documents_mark_reviewed(
         document_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Mark a document as reviewed."""
@@ -119,8 +119,8 @@ def register(mcp):
 
     @mcp.tool()
     def documents_analysis_results(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         immobilie_id=None,
         document_id=None,
         base_url=None,
@@ -143,8 +143,8 @@ def register(mcp):
 
     @mcp.tool()
     def documents_clear_analysis(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         immobilie_id=None,
         base_url=None,
     ):
