@@ -7,7 +7,6 @@ import os
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
-from starlette.routing import Mount
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .._shared import _resolve_mcp_host, _resolve_mcp_port, ctx_token, ctx_organisation_id
@@ -21,9 +20,6 @@ class _AuthMiddleware:
     1. Direct headers: Authorization: Bearer <api_token> + X-Organisation-Id: <org>
     2. OAuth access token: Authorization: Bearer <base64(api_token:org_id)>
     3. No auth: tools will ask for credentials as parameters
-
-    For unauthenticated MCP requests, returns 401 with WWW-Authenticate
-    pointing to the OAuth discovery endpoint (required by MCP spec).
     """
 
     def __init__(self, app: ASGIApp):
@@ -55,6 +51,28 @@ class _AuthMiddleware:
         await self.app(scope, receive, send)
 
 
+class _OAuthFrontMiddleware:
+    """Route OAuth paths to the OAuth app, everything else to the MCP app.
+
+    This avoids wrapping the MCP app in a new Starlette app (which breaks
+    the MCP lifespan/task-group initialization).
+    """
+
+    _OAUTH_PREFIXES = ('/.well-known/oauth-', '/oauth/')
+
+    def __init__(self, mcp_app: ASGIApp):
+        self.mcp_app = mcp_app
+        self.oauth_app = Starlette(routes=create_oauth_routes())
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope['type'] == 'http':
+            path = scope.get('path', '')
+            if any(path.startswith(p) for p in self._OAUTH_PREFIXES):
+                await self.oauth_app(scope, receive, send)
+                return
+        await self.mcp_app(scope, receive, send)
+
+
 def create_server(name: str) -> FastMCP:
     return FastMCP(
         name,
@@ -72,27 +90,14 @@ def run_server(mcp: FastMCP) -> None:
         mcp.run(transport='stdio')
         return
 
-    # Build combined ASGI app: OAuth routes + MCP server
+    # Build MCP app with auth middleware
     if transport == 'sse':
         mcp_app = mcp.sse_app()
     else:
         mcp_app = mcp.streamable_http_app()
 
-    # Wrap MCP with auth middleware
-    authed_mcp = _AuthMiddleware(mcp_app)
-
-    # Create combined Starlette app with OAuth + MCP
-    oauth_routes = create_oauth_routes()
-
-    # OAuth routes are served directly, MCP routes are mounted at the transport path
-    # We need a catch-all that falls through: OAuth routes first, then MCP
-    app = Starlette(
-        routes=[
-            *oauth_routes,
-            # Mount MCP as catch-all for /mcp, /sse, and other paths
-            Mount('/', app=authed_mcp),
-        ],
-    )
+    # Stack: OAuth front → Auth middleware → MCP app
+    app = _OAuthFrontMiddleware(_AuthMiddleware(mcp_app))
 
     uvicorn.run(
         app,
