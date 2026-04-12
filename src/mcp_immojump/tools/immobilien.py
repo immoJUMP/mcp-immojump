@@ -242,3 +242,24 @@ def immobilien_contacts(
         callback=lambda client: client.immobilien_contacts(immobilie_id=immobilie_id),
     )
     return _ok(result)
+
+
+@mcp.tool()
+def immobilien_split_units(
+    immobilie_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Split a multi-family property into separate individual properties.
+
+    Each unit becomes its own Immobilie. The original MFH is preserved.
+    """
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.immobilien_split_units(immobilie_id=immobilie_id),
+    )
+    return _ok(result)

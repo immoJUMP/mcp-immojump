@@ -186,3 +186,23 @@ def activities_structure_description(
         callback=lambda client: client.activities_structure_description(text=text),
     )
     return _ok(result)
+
+
+@mcp.tool()
+def activities_calendar_generate_link(
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Generate an iCalendar (.ics) sharing link for activities.
+
+    Returns a URL that can be subscribed to in any calendar app.
+    """
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.activities_calendar_generate_link(),
+    )
+    return _ok(result)

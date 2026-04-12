@@ -209,6 +209,9 @@ class ImmojumpAPIClient:
     def immobilien_contacts(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/v2/immobilien/{immobilie_id}/contacts')
 
+    def immobilien_split_units(self, *, immobilie_id: str) -> Any:
+        return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units')
+
     # ------------------------------------------------------------------
     # Contacts – CRUD
     # ------------------------------------------------------------------
@@ -240,8 +243,8 @@ class ImmojumpAPIClient:
     def contacts_update(self, *, contact_id: str, data: dict[str, Any]) -> Any:
         return self._request('PUT', f'/api/contacts/{contact_id}', json=data)
 
-    def contacts_update_status(self, *, contact_id: str, status: str) -> Any:
-        return self._request('PUT', f'/api/contacts/{contact_id}/status', json={'status': status})
+    def contacts_update_status(self, *, contact_id: str, status_id: int | str) -> Any:
+        return self._request('PUT', f'/api/contacts/{contact_id}/status', json={'status_id': int(status_id)})
 
     def contacts_delete(self, *, contact_id: str) -> Any:
         return self._request('DELETE', f'/api/contacts/{contact_id}')
@@ -430,6 +433,13 @@ class ImmojumpAPIClient:
             json={'text': text, 'organisation_id': self.credentials.organisation_id},
         )
 
+    def activities_calendar_generate_link(self) -> Any:
+        return self._request(
+            'POST',
+            '/api/activities/calendar/generate-link',
+            json={'organisation_id': self.credentials.organisation_id},
+        )
+
     # ------------------------------------------------------------------
     # Activity Templates (existing)
     # ------------------------------------------------------------------
@@ -615,8 +625,8 @@ class ImmojumpAPIClient:
     def tickets_delete(self, *, ticket_id: str) -> Any:
         return self._request('DELETE', f'/api/tickets/{ticket_id}')
 
-    def tickets_change_status(self, *, ticket_id: str, status: str) -> Any:
-        return self._request('PATCH', f'/api/tickets/{ticket_id}/status', json={'status': status})
+    def tickets_change_status(self, *, ticket_id: str, status_id: str) -> Any:
+        return self._request('PATCH', f'/api/tickets/{ticket_id}/status', json={'status_id': status_id})
 
     def tickets_list_comments(self, *, ticket_id: str) -> Any:
         return self._request('GET', f'/api/tickets/{ticket_id}/activities')
@@ -740,7 +750,7 @@ class ImmojumpAPIClient:
     def tags_list(self, *, entity_type: str | None = None) -> Any:
         params: dict[str, Any] = {}
         if entity_type:
-            params['entity_type'] = entity_type
+            params['for'] = entity_type
         return self._request(
             'GET',
             f'/api/{self.credentials.organisation_id}/tags',
@@ -771,7 +781,7 @@ class ImmojumpAPIClient:
         return self._request(
             'PUT',
             f'/api/tags/{entity_type}/{entity_id}',
-            json={'tag_ids': tag_ids},
+            json=tag_ids,
         )
 
     # ------------------------------------------------------------------
@@ -1284,6 +1294,37 @@ class ImmojumpAPIClient:
 
     def investor_search_profile_mask_delete(self, *, org_id: str, mask_id: str) -> Any:
         return self._request('DELETE', f'/api/organisations/{org_id}/search-profile-masks/{mask_id}')
+
+    def investor_my_assignment_favorite(self, *, org_id: str, assignment_id: str) -> Any:
+        return self._request(
+            'POST',
+            f'/api/organisations/{org_id}/my-assignments/{assignment_id}/favorite',
+        )
+
+    def investor_my_assignment_accept_agreement(self, *, org_id: str, assignment_id: str) -> Any:
+        return self._request(
+            'POST',
+            f'/api/organisations/{org_id}/my-assignments/{assignment_id}/accept-agreement',
+        )
+
+    def investor_finance_defaults(self, *, org_id: str) -> Any:
+        return self._request('GET', f'/api/organisations/{org_id}/investor-finance-defaults')
+
+    def investor_finance_defaults_update(self, *, org_id: str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'PUT',
+            f'/api/organisations/{org_id}/investor-finance-defaults',
+            json=data,
+        )
+
+    def investor_matching_config_reset(self, *, org_id: str) -> Any:
+        return self._request('POST', f'/api/organisations/{org_id}/matching-config/reset')
+
+    def investor_inquiry(self, *, org_id: str, data: dict[str, Any]) -> Any:
+        return self._request('POST', f'/api/organisations/{org_id}/investor-inquiry', json=data)
+
+    def investor_legal_docs(self, *, org_id: str) -> Any:
+        return self._request('GET', f'/api/organisations/{org_id}/legal-docs')
 
     # ------------------------------------------------------------------
     # Activity template update helpers (existing, private)

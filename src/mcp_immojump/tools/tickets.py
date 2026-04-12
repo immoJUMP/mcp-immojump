@@ -130,18 +130,22 @@ def tickets_delete(
 @mcp.tool()
 def tickets_change_status(
     ticket_id,
-    status,
+    status_id,
     token,
     organisation_id,
     base_url=None,
 ):
-    """Move a ticket to a different Kanban column (change status)."""
+    """Move a ticket to a different Kanban column.
+
+    status_id: UUID of the target ticket status.
+    Use tickets_statuses to list available statuses.
+    """
 
     result = _call_with_client(
         base_url=base_url,
         token=token,
         organisation_id=organisation_id,
-        callback=lambda client: client.tickets_change_status(ticket_id=ticket_id, status=status),
+        callback=lambda client: client.tickets_change_status(ticket_id=ticket_id, status_id=status_id),
     )
     return _ok(result)
 

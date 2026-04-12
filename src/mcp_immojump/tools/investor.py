@@ -395,3 +395,142 @@ def investor_reporting(
         callback=lambda client: client.investor_reporting(org_id=org_id),
     )
     return _ok(result)
+
+
+@mcp.tool()
+def investor_my_assignment_favorite(
+    org_id,
+    assignment_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Toggle favorite status for an assignment (investor view)."""
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_my_assignment_favorite(
+            org_id=org_id, assignment_id=assignment_id,
+        ),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_my_assignment_accept_agreement(
+    org_id,
+    assignment_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Accept the legal agreement for a property assignment."""
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_my_assignment_accept_agreement(
+            org_id=org_id, assignment_id=assignment_id,
+        ),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_finance_defaults(
+    org_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Get default finance parameters for investor calculations."""
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_finance_defaults(org_id=org_id),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_finance_defaults_update(
+    org_id,
+    data,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Update default finance parameters for investor calculations."""
+
+    payload = _require_dict(field_name='data', value=data)
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_finance_defaults_update(org_id=org_id, data=payload),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_matching_config_reset(
+    org_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Reset matching configuration to defaults."""
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_matching_config_reset(org_id=org_id),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_inquiry(
+    org_id,
+    data,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Submit an investor inquiry for a property.
+
+    data: {"assignment_id": "...", "message": "..."}.
+    """
+
+    payload = _require_dict(field_name='data', value=data)
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_inquiry(org_id=org_id, data=payload),
+    )
+    return _ok(result)
+
+
+@mcp.tool()
+def investor_legal_docs(
+    org_id,
+    token,
+    organisation_id,
+    base_url=None,
+):
+    """Get legal documents for the investor portal."""
+
+    result = _call_with_client(
+        base_url=base_url,
+        token=token,
+        organisation_id=organisation_id,
+        callback=lambda client: client.investor_legal_docs(org_id=org_id),
+    )
+    return _ok(result)
