@@ -3,6 +3,27 @@ from .._shared import _call_with_client, _ok, _require_dict
 
 def register(mcp):
     @mcp.tool()
+    def activities_meta(
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """Get valid enum values for activity filters.
+
+        Returns: statuses, types, priorities — use these values when
+        filtering activities_list. Call this first if unsure which
+        filter values are allowed.
+        """
+
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.activities_meta(),
+        )
+        return _ok(result)
+
+    @mcp.tool()
     def activities_list(
         token=None,
         organisation_id=None,
@@ -16,8 +37,10 @@ def register(mcp):
         """List activities/tasks with pagination and optional filters.
 
         - search: free-text query
-        - status: filter by activity status (e.g. open, done)
-        - type: filter by activity type (e.g. call, email, meeting, task)
+        - status: one of Geplant, In Bearbeitung, Abgeschlossen, Abgebrochen
+        - type: one of ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, SONSTIGES
+
+        Call activities_meta first to get all valid filter values.
         """
 
         result = _call_with_client(

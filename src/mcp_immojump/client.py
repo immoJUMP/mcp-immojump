@@ -371,6 +371,13 @@ class ImmojumpAPIClient:
     # Activities
     # ------------------------------------------------------------------
 
+    def activities_meta(self) -> Any:
+        return self._request(
+            'GET',
+            '/api/activities/activities/meta',
+            params={'organisation_id': self.credentials.organisation_id},
+        )
+
     def activities_list(
         self,
         *,
