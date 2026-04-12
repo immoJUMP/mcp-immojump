@@ -1,19 +1,18 @@
-"""ImmoJUMP MCP server – entry point.
+"""immoJUMP MCP server – monolithic entry point (all 195 tools).
 
-Tool registrations live in ``tools/`` sub-modules; they are imported here so
-that all tools are discovered when the server starts.  Shared helpers are in
-``_app.py`` and re-exported below for backward compatibility with existing
-tests.
+For production use, prefer the domain-specific servers in ``servers/``
+(properties, crm, pipeline, org, investor) which each expose 26-58 tools.
+
+This monolithic server is kept for backward compatibility and development.
 """
 
 from __future__ import annotations
 
 import os
 
-# Re-export shared state & helpers so ``import mcp_immojump.server as server``
-# followed by ``server._resolve_credentials(...)`` keeps working in tests.
-from ._app import (  # noqa: F401
-    mcp,
+from mcp.server.fastmcp import FastMCP
+
+from ._shared import (  # noqa: F401  — re-exported for test backward compat
     _resolve_mcp_host,
     _resolve_mcp_port,
     _resolve_credentials,
@@ -23,9 +22,58 @@ from ._app import (  # noqa: F401
     _require_dict,
     _require_list,
 )
+from .tools import (
+    connection,
+    immobilien,
+    contacts,
+    activities,
+    activity_templates,
+    custom_fields,
+    deals,
+    tickets,
+    documents,
+    loans,
+    milestones,
+    units,
+    tags,
+    organisation,
+    feed,
+    email_messages,
+    valuation,
+    user,
+    investor,
+    pipelines,
+    statuses,
+)
 
-# Importing the tools package triggers all ``@mcp.tool()`` registrations.
-from . import tools as _tools  # noqa: F401
+mcp = FastMCP(
+    'immojump',
+    host=_resolve_mcp_host(),
+    port=_resolve_mcp_port(),
+)
+
+# Register ALL domains on the monolithic instance.
+connection.register(mcp)
+immobilien.register(mcp)
+contacts.register(mcp)
+activities.register(mcp)
+activity_templates.register(mcp)
+custom_fields.register(mcp)
+deals.register(mcp)
+tickets.register(mcp)
+documents.register(mcp)
+loans.register(mcp)
+milestones.register(mcp)
+units.register(mcp)
+tags.register(mcp)
+organisation.register(mcp)
+feed.register(mcp)
+email_messages.register(mcp)
+valuation.register(mcp)
+user.register(mcp)
+investor.register(mcp)
+pipelines.register(mcp)
+statuses.register(mcp)
 
 
 def main() -> None:
