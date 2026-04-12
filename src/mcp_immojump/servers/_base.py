@@ -81,6 +81,25 @@ def create_server(name: str) -> FastMCP:
     )
 
 
+class _DualTransportApp:
+    """Serve both SSE (/sse) and Streamable HTTP (/mcp) on the same server.
+
+    Claude Desktop uses /sse, ChatGPT uses /mcp (streamable-http).
+    This middleware routes based on path prefix.
+    """
+
+    def __init__(self, mcp: FastMCP):
+        self.sse_app = _AuthMiddleware(mcp.sse_app())
+        self.http_app = _AuthMiddleware(mcp.streamable_http_app())
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        path = scope.get('path', '')
+        if path.startswith('/sse'):
+            await self.sse_app(scope, receive, send)
+        else:
+            await self.http_app(scope, receive, send)
+
+
 def run_server(mcp: FastMCP) -> None:
     transport = str(os.getenv('IMMOJUMP_MCP_TRANSPORT', 'sse')).strip().lower()
     if transport not in {'sse', 'streamable-http', 'stdio'}:
@@ -90,14 +109,11 @@ def run_server(mcp: FastMCP) -> None:
         mcp.run(transport='stdio')
         return
 
-    # Build MCP app with auth middleware
-    if transport == 'sse':
-        mcp_app = mcp.sse_app()
-    else:
-        mcp_app = mcp.streamable_http_app()
+    # Serve both transports: /sse for Claude, /mcp for ChatGPT
+    dual_mcp = _DualTransportApp(mcp)
 
-    # Stack: OAuth front → Auth middleware → MCP app
-    app = _OAuthFrontMiddleware(_AuthMiddleware(mcp_app))
+    # Stack: OAuth front → dual transport MCP
+    app = _OAuthFrontMiddleware(dual_mcp)
 
     uvicorn.run(
         app,
