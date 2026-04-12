@@ -8,8 +8,6 @@ This monolithic server is kept for backward compatibility and development.
 
 from __future__ import annotations
 
-import os
-
 from mcp.server.fastmcp import FastMCP
 
 from ._shared import (  # noqa: F401  — re-exported for test backward compat
@@ -77,10 +75,8 @@ statuses.register(mcp)
 
 
 def main() -> None:
-    transport = str(os.getenv('IMMOJUMP_MCP_TRANSPORT', 'sse')).strip().lower()
-    if transport not in {'sse', 'streamable-http', 'stdio'}:
-        raise ValueError('IMMOJUMP_MCP_TRANSPORT must be one of: sse, streamable-http, stdio')
-    mcp.run(transport=transport)
+    from .servers._base import run_server
+    run_server(mcp)
 
 
 if __name__ == '__main__':

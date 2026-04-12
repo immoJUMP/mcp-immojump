@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list
 def register(mcp):
     @mcp.tool()
     def tags_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         entity_type=None,
         base_url=None,
     ):
@@ -25,8 +25,8 @@ def register(mcp):
     @mcp.tool()
     def tags_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new tag.
@@ -47,8 +47,8 @@ def register(mcp):
     def tags_update(
         tag_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a tag (name, color)."""
@@ -65,8 +65,8 @@ def register(mcp):
     @mcp.tool()
     def tags_delete(
         tag_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a tag. Removes it from all tagged entities."""
@@ -83,8 +83,8 @@ def register(mcp):
     def tags_get_entity(
         entity_type,
         entity_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get tags assigned to an entity.
@@ -106,8 +106,8 @@ def register(mcp):
         entity_type,
         entity_id,
         tag_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Set the tags for an entity (replaces existing tags).

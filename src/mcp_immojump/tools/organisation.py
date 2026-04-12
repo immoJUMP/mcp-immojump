@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list
 def register(mcp):
     @mcp.tool()
     def organisation_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all organisations the current user belongs to."""
@@ -21,8 +21,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_get(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for an organisation."""
@@ -39,8 +39,8 @@ def register(mcp):
     def organisation_update(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update organisation settings (name, logo, config)."""
@@ -57,8 +57,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_members(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all members of an organisation with their roles."""
@@ -76,8 +76,8 @@ def register(mcp):
         org_id,
         user_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a member's settings in the organisation."""
@@ -98,8 +98,8 @@ def register(mcp):
         org_id,
         user_id,
         role_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Set roles for a member. role_ids replaces all current roles."""
@@ -119,8 +119,8 @@ def register(mcp):
     def organisation_remove_member(
         org_id,
         user_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Remove a member from the organisation."""
@@ -136,8 +136,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_invites(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List pending invitations for an organisation."""
@@ -154,8 +154,8 @@ def register(mcp):
     def organisation_invite(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Invite a new member to the organisation.
@@ -176,8 +176,8 @@ def register(mcp):
     def organisation_cancel_invite(
         org_id,
         invite_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Cancel a pending invitation."""
@@ -193,8 +193,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_roles(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all roles defined for an organisation."""
@@ -211,8 +211,8 @@ def register(mcp):
     def organisation_create_role(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a custom role.
@@ -234,8 +234,8 @@ def register(mcp):
         org_id,
         role_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a custom role."""
@@ -255,8 +255,8 @@ def register(mcp):
     def organisation_delete_role(
         org_id,
         role_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a custom role."""
@@ -272,8 +272,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_report_design(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get the current report design/branding for an organisation."""
@@ -289,8 +289,8 @@ def register(mcp):
     @mcp.tool()
     def organisation_rebuild_report_design(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Rebuild/regenerate the report design for an organisation."""

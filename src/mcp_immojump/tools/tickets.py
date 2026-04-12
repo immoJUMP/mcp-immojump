@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def tickets_statuses(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List available ticket statuses (Kanban columns)."""
@@ -20,8 +20,8 @@ def register(mcp):
 
     @mcp.tool()
     def tickets_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         page=1,
         per_page=25,
         status=None,
@@ -50,8 +50,8 @@ def register(mcp):
     @mcp.tool()
     def tickets_get(
         ticket_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single ticket by UUID."""
@@ -67,8 +67,8 @@ def register(mcp):
     @mcp.tool()
     def tickets_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new ticket.
@@ -90,8 +90,8 @@ def register(mcp):
     def tickets_update(
         ticket_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a ticket (full update)."""
@@ -108,8 +108,8 @@ def register(mcp):
     @mcp.tool()
     def tickets_delete(
         ticket_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a ticket permanently."""
@@ -126,8 +126,8 @@ def register(mcp):
     def tickets_change_status(
         ticket_id,
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Move a ticket to a different Kanban column.
@@ -147,8 +147,8 @@ def register(mcp):
     @mcp.tool()
     def tickets_list_comments(
         ticket_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List comments/activity on a ticket."""
@@ -165,8 +165,8 @@ def register(mcp):
     def tickets_add_comment(
         ticket_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Add a comment to a ticket.

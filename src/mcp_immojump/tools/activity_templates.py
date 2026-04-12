@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list
 def register(mcp):
     @mcp.tool()
     def activity_templates_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List activity templates for organisation."""
@@ -20,8 +20,8 @@ def register(mcp):
 
     @mcp.tool()
     def activity_templates_recurring_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List recurring activity templates for organisation."""
@@ -37,8 +37,8 @@ def register(mcp):
     @mcp.tool()
     def activity_templates_by_status(
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List activity templates bound to a status."""
@@ -54,8 +54,8 @@ def register(mcp):
     @mcp.tool()
     def activity_template_get(
         template_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get activity template by id."""
@@ -71,8 +71,8 @@ def register(mcp):
     @mcp.tool()
     def activity_template_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create activity template."""
@@ -90,8 +90,8 @@ def register(mcp):
     def activity_template_update(
         template_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update activity template with safe outcome semantics.
@@ -114,8 +114,8 @@ def register(mcp):
     @mcp.tool()
     def activity_template_delete(
         template_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete activity template."""
@@ -132,8 +132,8 @@ def register(mcp):
     def activity_templates_batch_move(
         template_ids,
         target_status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Move multiple activity templates to a new status."""

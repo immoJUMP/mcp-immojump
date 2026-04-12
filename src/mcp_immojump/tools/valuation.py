@@ -5,8 +5,8 @@ def register(mcp):
     @mcp.tool()
     def valuation_request(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         providers=None,
         base_url=None,
     ):
@@ -29,8 +29,8 @@ def register(mcp):
     @mcp.tool()
     def valuation_history(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get valuation history for a property (all past valuations)."""
@@ -45,8 +45,8 @@ def register(mcp):
 
     @mcp.tool()
     def valuation_providers(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List available valuation providers and their status."""

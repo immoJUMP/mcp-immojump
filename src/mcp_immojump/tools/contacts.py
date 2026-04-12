@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list
 def register(mcp):
     @mcp.tool()
     def contacts_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         page=1,
         per_page=25,
         search=None,
@@ -29,8 +29,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_get(
         contact_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single contact by UUID."""
@@ -46,8 +46,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new contact.
@@ -69,8 +69,8 @@ def register(mcp):
     def contacts_update(
         contact_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an existing contact (full replace)."""
@@ -88,8 +88,8 @@ def register(mcp):
     def contacts_update_status(
         contact_id,
         status_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Change the pipeline status of a contact.
@@ -108,8 +108,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_delete(
         contact_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a single contact permanently."""
@@ -124,8 +124,8 @@ def register(mcp):
 
     @mcp.tool()
     def contacts_count(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Return the total number of contacts for the organisation."""
@@ -141,8 +141,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_bulk_delete(
         contact_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete multiple contacts at once.
@@ -162,8 +162,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_get_immobilien(
         contact_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List properties linked to a contact."""
@@ -179,8 +179,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_get_activities(
         contact_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List activities linked to a contact."""
@@ -195,8 +195,8 @@ def register(mcp):
 
     @mcp.tool()
     def contacts_merge_logs(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """View merge history -- shows previous contact merge operations."""
@@ -212,8 +212,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_merge_restore(
         merge_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Restore a previously merged contact (undo merge)."""
@@ -233,8 +233,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_import_preview(
         source_type,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         source_text=None,
         file_path=None,
         sheet_name=None,
@@ -267,8 +267,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_import_start(
         source_type,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         source_text=None,
         file_path=None,
         sheet_name=None,
@@ -300,8 +300,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_job_status(
         job_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Read import job status."""
@@ -317,8 +317,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_job_resume(
         job_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Resume a failed/cancelled import job."""
@@ -334,8 +334,8 @@ def register(mcp):
     @mcp.tool()
     def contacts_job_cancel(
         job_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Request cancellation for an import job."""
@@ -350,8 +350,8 @@ def register(mcp):
 
     @mcp.tool()
     def contacts_duplicates_preview(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         by='email,phone,mobile,name',
         min_count=2,
         limit_groups=200,
@@ -380,8 +380,8 @@ def register(mcp):
     def contacts_merge_apply(
         primary_id,
         duplicate_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Execute contact merge for confirmed duplicates.

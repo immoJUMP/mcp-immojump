@@ -9,8 +9,8 @@ def register(mcp):
     @mcp.tool()
     def investor_search_profile_get(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get the current user's investor search profile for an organisation."""
@@ -27,8 +27,8 @@ def register(mcp):
     def investor_search_profile_save(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Save/update the current user's investor search profile.
@@ -48,8 +48,8 @@ def register(mcp):
     @mcp.tool()
     def investor_search_profiles(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all search profiles for the current user in an organisation."""
@@ -65,8 +65,8 @@ def register(mcp):
     @mcp.tool()
     def investor_search_profile_submissions(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all search profile submissions (admin view)."""
@@ -84,8 +84,8 @@ def register(mcp):
         org_id,
         submission_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a search profile submission (admin – approve/reject/edit)."""
@@ -108,8 +108,8 @@ def register(mcp):
     @mcp.tool()
     def investor_search_profile_masks(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List search profile masks (form definitions for investor criteria)."""
@@ -126,8 +126,8 @@ def register(mcp):
     def investor_search_profile_mask_create(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new search profile mask (admin)."""
@@ -146,8 +146,8 @@ def register(mcp):
         org_id,
         mask_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a search profile mask (admin)."""
@@ -167,8 +167,8 @@ def register(mcp):
     def investor_search_profile_mask_delete(
         org_id,
         mask_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a search profile mask (admin)."""
@@ -188,8 +188,8 @@ def register(mcp):
     @mcp.tool()
     def investor_assignments_list(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all investor assignments for an organisation (admin)."""
@@ -206,8 +206,8 @@ def register(mcp):
     def investor_assignments_create(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create an investor assignment (assign property to investor).
@@ -228,8 +228,8 @@ def register(mcp):
     def investor_assignments_bulk(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Bulk-create investor assignments."""
@@ -248,8 +248,8 @@ def register(mcp):
         org_id,
         assignment_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an investor assignment."""
@@ -269,8 +269,8 @@ def register(mcp):
     def investor_assignment_delete(
         org_id,
         assignment_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete an investor assignment."""
@@ -288,8 +288,8 @@ def register(mcp):
     @mcp.tool()
     def investor_my_assignments(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List property assignments for the current investor user."""
@@ -306,8 +306,8 @@ def register(mcp):
     def investor_my_assignment_get(
         org_id,
         assignment_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get details for a specific assignment (investor view)."""
@@ -329,8 +329,8 @@ def register(mcp):
     @mcp.tool()
     def investor_matching_config(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get the matching configuration (how investors are matched to properties)."""
@@ -347,8 +347,8 @@ def register(mcp):
     def investor_matching_config_update(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update the matching configuration."""
@@ -365,8 +365,8 @@ def register(mcp):
     @mcp.tool()
     def investor_reporting(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get investor portal reporting/analytics data."""
@@ -383,8 +383,8 @@ def register(mcp):
     def investor_my_assignment_favorite(
         org_id,
         assignment_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Toggle favorite status for an assignment (investor view)."""
@@ -403,8 +403,8 @@ def register(mcp):
     def investor_my_assignment_accept_agreement(
         org_id,
         assignment_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Accept the legal agreement for a property assignment."""
@@ -422,8 +422,8 @@ def register(mcp):
     @mcp.tool()
     def investor_finance_defaults(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get default finance parameters for investor calculations."""
@@ -440,8 +440,8 @@ def register(mcp):
     def investor_finance_defaults_update(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update default finance parameters for investor calculations."""
@@ -458,8 +458,8 @@ def register(mcp):
     @mcp.tool()
     def investor_matching_config_reset(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Reset matching configuration to defaults."""
@@ -476,8 +476,8 @@ def register(mcp):
     def investor_inquiry(
         org_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Submit an investor inquiry for a property.
@@ -497,8 +497,8 @@ def register(mcp):
     @mcp.tool()
     def investor_legal_docs(
         org_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get legal documents for the investor portal."""

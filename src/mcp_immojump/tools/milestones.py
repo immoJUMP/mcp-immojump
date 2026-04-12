@@ -5,8 +5,8 @@ def register(mcp):
     @mcp.tool()
     def milestones_list(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all milestones/deadlines for a property.
@@ -33,8 +33,8 @@ def register(mcp):
     def milestones_create(
         immobilie_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a milestone/deadline for a property.
@@ -71,8 +71,8 @@ def register(mcp):
     def milestones_update(
         milestone_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a milestone (partial update – only provided fields change).
@@ -95,8 +95,8 @@ def register(mcp):
     @mcp.tool()
     def milestones_delete(
         milestone_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a milestone. Clears the synced date field on the property."""

@@ -5,8 +5,8 @@ def register(mcp):
     @mcp.tool()
     def units_list(
         immobilie_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List all units (apartments) for a multi-family property."""
@@ -21,8 +21,8 @@ def register(mcp):
 
     @mcp.tool()
     def units_count(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Return total unit count across all properties."""
@@ -39,8 +39,8 @@ def register(mcp):
     def units_create(
         immobilie_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new unit for a multi-family property.
@@ -62,8 +62,8 @@ def register(mcp):
     def units_update(
         unit_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an existing unit."""
@@ -80,8 +80,8 @@ def register(mcp):
     @mcp.tool()
     def units_delete(
         unit_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a unit permanently."""

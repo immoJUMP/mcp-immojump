@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_list
 def register(mcp):
     @mcp.tool()
     def email_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         folder=None,
         page=1,
         per_page=25,
@@ -31,8 +31,8 @@ def register(mcp):
     @mcp.tool()
     def email_get(
         message_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single email message."""
@@ -48,8 +48,8 @@ def register(mcp):
     @mcp.tool()
     def email_thread(
         thread_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get all messages in an email thread."""
@@ -65,8 +65,8 @@ def register(mcp):
     @mcp.tool()
     def email_mark_read(
         message_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         read=True,
         base_url=None,
     ):
@@ -88,8 +88,8 @@ def register(mcp):
     @mcp.tool()
     def email_mark_starred(
         message_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         starred=True,
         base_url=None,
     ):
@@ -111,8 +111,8 @@ def register(mcp):
     @mcp.tool()
     def email_archive(
         message_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Archive email messages."""
@@ -129,8 +129,8 @@ def register(mcp):
     @mcp.tool()
     def email_trash(
         message_ids,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Move email messages to trash."""
@@ -148,8 +148,8 @@ def register(mcp):
     def email_move(
         message_ids,
         folder,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Move email messages to a specific folder."""
@@ -165,8 +165,8 @@ def register(mcp):
 
     @mcp.tool()
     def email_folders(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List email folders."""
@@ -182,8 +182,8 @@ def register(mcp):
     @mcp.tool()
     def email_create_folder(
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new email folder."""
@@ -200,8 +200,8 @@ def register(mcp):
     def email_rename_folder(
         folder_id,
         name,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Rename an email folder."""
@@ -217,8 +217,8 @@ def register(mcp):
     @mcp.tool()
     def email_delete_folder(
         folder_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete an email folder."""
@@ -234,8 +234,8 @@ def register(mcp):
     @mcp.tool()
     def email_search(
         query,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Search email messages by query string."""
@@ -251,8 +251,8 @@ def register(mcp):
     @mcp.tool()
     def email_by_contact(
         contact_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get all emails associated with a contact."""
@@ -267,8 +267,8 @@ def register(mcp):
 
     @mcp.tool()
     def email_sync(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Trigger email synchronisation with the mail provider."""

@@ -4,8 +4,8 @@ from .._shared import _call_with_client, _ok, _require_dict
 def register(mcp):
     @mcp.tool()
     def deals_list(
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         page=1,
         per_page=25,
         pipeline_id=None,
@@ -37,8 +37,8 @@ def register(mcp):
     @mcp.tool()
     def deals_get(
         deal_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get full details for a single deal by UUID."""
@@ -54,8 +54,8 @@ def register(mcp):
     @mcp.tool()
     def deals_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a new deal.
@@ -77,8 +77,8 @@ def register(mcp):
     def deals_update(
         deal_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update an existing deal (partial update via PATCH).

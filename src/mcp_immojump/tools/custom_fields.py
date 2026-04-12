@@ -9,8 +9,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_definitions_list(
         model,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List custom field definitions for a model.
@@ -32,8 +32,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_definition_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a custom field definition (admin only).
@@ -64,8 +64,8 @@ def register(mcp):
     def custom_fields_definition_update(
         definition_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a custom field definition (admin only).
@@ -88,8 +88,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_definition_delete(
         definition_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a custom field definition and all its values (admin only)."""
@@ -111,8 +111,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_views_list(
         model,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """List custom field views (layout configurations) for a model.
@@ -133,8 +133,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_view_create(
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Create a custom field view (layout configuration).
@@ -160,8 +160,8 @@ def register(mcp):
     def custom_fields_view_update(
         view_id,
         data,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Update a custom field view."""
@@ -180,8 +180,8 @@ def register(mcp):
     @mcp.tool()
     def custom_fields_view_delete(
         view_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Delete a custom field view."""
@@ -202,8 +202,8 @@ def register(mcp):
     def custom_fields_values_get(
         model,
         target_id,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Get custom field values for a specific entity.
@@ -237,8 +237,8 @@ def register(mcp):
         model,
         target_id,
         values,
-        token,
-        organisation_id,
+        token=None,
+        organisation_id=None,
         base_url=None,
     ):
         """Set custom field values for a specific entity.
