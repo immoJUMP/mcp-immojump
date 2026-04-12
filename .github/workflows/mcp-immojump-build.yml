@@ -81,3 +81,14 @@ jobs:
           push: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Rollout restart on Kubernetes
+        if: ${{ success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true') && secrets.KUBECONFIG != '' }}
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        run: |
+          mkdir -p ~/.kube
+          echo "${KUBECONFIG_DATA}" | base64 -d > ~/.kube/config
+          kubectl rollout restart deployment/mcp-immojump -n calc2-immojump-de
+          kubectl rollout status deployment/mcp-immojump -n calc2-immojump-de --timeout=120s
+          rm -f ~/.kube/config
