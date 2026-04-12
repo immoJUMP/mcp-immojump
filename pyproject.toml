@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcp-immojump"
 version = "0.1.0"
-description = "MCP server for ImmoJUMP contact import orchestration"
+description = "MCP servers for the immoJUMP real estate investment platform"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -38,6 +38,11 @@ test = [
 
 [project.scripts]
 mcp-immojump = "mcp_immojump.server:main"
+mcp-immojump-properties = "mcp_immojump.servers.properties:main"
+mcp-immojump-crm = "mcp_immojump.servers.crm:main"
+mcp-immojump-pipeline = "mcp_immojump.servers.pipeline:main"
+mcp-immojump-org = "mcp_immojump.servers.org:main"
+mcp-immojump-investor = "mcp_immojump.servers.investor:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
