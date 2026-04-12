@@ -111,6 +111,7 @@ async def authorization_server_metadata(request: Request) -> JSONResponse:
         'issuer': server_url,
         'authorization_endpoint': f'{server_url}/oauth/authorize',
         'token_endpoint': f'{server_url}/oauth/token',
+        'registration_endpoint': f'{server_url}/oauth/register',
         'response_types_supported': ['code'],
         'grant_types_supported': ['authorization_code'],
         'code_challenge_methods_supported': ['S256'],
@@ -294,6 +295,33 @@ async def token(request: Request) -> JSONResponse:
     })
 
 
+async def register(request: Request) -> JSONResponse:
+    """RFC 7591: Dynamic Client Registration.
+
+    Accepts any registration request and returns a client_id.
+    Our auth flow doesn't validate client_id — the user authenticates
+    with their immoJUMP API token, not with client credentials.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    # Use provided client_name or generate one
+    client_name = body.get('client_name', 'MCP Client')
+    client_id = body.get('client_id') or f'immojump-{secrets.token_hex(8)}'
+    redirect_uris = body.get('redirect_uris', [])
+
+    return JSONResponse({
+        'client_id': client_id,
+        'client_name': client_name,
+        'redirect_uris': redirect_uris,
+        'grant_types': ['authorization_code'],
+        'response_types': ['code'],
+        'token_endpoint_auth_method': 'none',
+    }, status_code=201)
+
+
 # ---------------------------------------------------------------------------
 # ASGI App factory
 # ---------------------------------------------------------------------------
@@ -305,4 +333,5 @@ def create_oauth_routes() -> list[Route]:
         Route('/.well-known/oauth-authorization-server', authorization_server_metadata, methods=['GET']),
         Route('/oauth/authorize', authorize, methods=['GET', 'POST']),
         Route('/oauth/token', token, methods=['POST']),
+        Route('/oauth/register', register, methods=['POST']),
     ]
