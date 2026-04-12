@@ -110,6 +110,7 @@ class TestDiscovery:
         data = resp.json()
         assert data['authorization_endpoint'].endswith('/oauth/authorize')
         assert data['token_endpoint'].endswith('/oauth/token')
+        assert data['registration_endpoint'].endswith('/oauth/register')
         assert 'code' in data['response_types_supported']
         assert 'authorization_code' in data['grant_types_supported']
         assert 'S256' in data['code_challenge_methods_supported']
@@ -119,6 +120,36 @@ class TestDiscovery:
         rm = oauth_client.get('/.well-known/oauth-protected-resource').json()
         asm = oauth_client.get('/.well-known/oauth-authorization-server').json()
         assert rm['authorization_servers'][0] == asm['issuer']
+
+
+# ---------------------------------------------------------------------------
+# Dynamic Client Registration (RFC 7591)
+# ---------------------------------------------------------------------------
+
+class TestDynamicClientRegistration:
+    def test_register_returns_client_id(self, oauth_client):
+        resp = oauth_client.post('/oauth/register', json={
+            'client_name': 'ChatGPT',
+            'redirect_uris': ['http://localhost:3000/callback'],
+            'grant_types': ['authorization_code'],
+        })
+        assert resp.status_code == 201
+        data = resp.json()
+        assert 'client_id' in data
+        assert data['client_name'] == 'ChatGPT'
+        assert data['redirect_uris'] == ['http://localhost:3000/callback']
+
+    def test_register_with_empty_body(self, oauth_client):
+        resp = oauth_client.post('/oauth/register', json={})
+        assert resp.status_code == 201
+        assert 'client_id' in resp.json()
+
+    def test_register_preserves_provided_client_id(self, oauth_client):
+        resp = oauth_client.post('/oauth/register', json={
+            'client_id': 'my-custom-id',
+        })
+        assert resp.status_code == 201
+        assert resp.json()['client_id'] == 'my-custom-id'
 
 
 # ---------------------------------------------------------------------------
