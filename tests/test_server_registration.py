@@ -16,7 +16,7 @@ def test_properties_server_tool_count():
 
 def test_crm_server_tool_count():
     from mcp_immojump.servers.crm import mcp
-    assert _tool_count(mcp) == 36
+    assert _tool_count(mcp) == 37
 
 
 def test_pipeline_server_tool_count():
@@ -36,7 +36,7 @@ def test_investor_server_tool_count():
 
 def test_monolithic_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 195
+    assert _tool_count(mcp) == 196
 
 
 def test_every_server_includes_connection_test():
