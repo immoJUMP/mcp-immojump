@@ -83,10 +83,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Rollout restart on Kubernetes
-        if: ${{ success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true') && secrets.KUBECONFIG != '' }}
+        if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true')
         env:
           KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
         run: |
+          if [ -z "${KUBECONFIG_DATA}" ]; then
+            echo "KUBECONFIG secret not set, skipping rollout"
+            exit 0
+          fi
           mkdir -p ~/.kube
           echo "${KUBECONFIG_DATA}" | base64 -d > ~/.kube/config
           kubectl rollout restart deployment/mcp-immojump -n calc2-immojump-de
