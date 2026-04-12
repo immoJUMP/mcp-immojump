@@ -1206,6 +1206,90 @@ class ImmojumpAPIClient:
         return self._request('GET', '/api/valuation/providers')
 
     # ------------------------------------------------------------------
+    # Custom Fields
+    # ------------------------------------------------------------------
+
+    def custom_fields_definitions_list(self, *, model: str) -> Any:
+        return self._request(
+            'GET',
+            '/api/custom-fields/definitions',
+            params={
+                'organisation_id': self.credentials.organisation_id,
+                'model': model,
+            },
+        )
+
+    def custom_fields_definition_create(self, *, data: dict[str, Any]) -> Any:
+        payload = dict(data)
+        payload.setdefault('organisation_id', self.credentials.organisation_id)
+        return self._request('POST', '/api/custom-fields/definitions', json=payload)
+
+    def custom_fields_definition_update(self, *, definition_id: str, data: dict[str, Any]) -> Any:
+        return self._request('PUT', f'/api/custom-fields/definitions/{definition_id}', json=data)
+
+    def custom_fields_definition_delete(self, *, definition_id: str) -> Any:
+        return self._request('DELETE', f'/api/custom-fields/definitions/{definition_id}')
+
+    def custom_fields_views_list(self, *, model: str) -> Any:
+        return self._request(
+            'GET',
+            '/api/custom-fields/views',
+            params={
+                'organisation_id': self.credentials.organisation_id,
+                'model': model,
+            },
+        )
+
+    def custom_fields_view_create(self, *, data: dict[str, Any]) -> Any:
+        payload = dict(data)
+        payload.setdefault('organisation_id', self.credentials.organisation_id)
+        return self._request('POST', '/api/custom-fields/views', json=payload)
+
+    def custom_fields_view_update(self, *, view_id: str, data: dict[str, Any]) -> Any:
+        return self._request('PUT', f'/api/custom-fields/views/{view_id}', json=data)
+
+    def custom_fields_view_delete(self, *, view_id: str) -> Any:
+        return self._request('DELETE', f'/api/custom-fields/views/{view_id}')
+
+    def custom_fields_values_get(self, *, model: str, target_id: str) -> Any:
+        return self._request(
+            'GET',
+            '/api/custom-fields/values',
+            params={'model': model, 'target_id': target_id},
+        )
+
+    def custom_fields_values_set(self, *, model: str, target_id: str, values: dict[str, Any]) -> Any:
+        return self._request(
+            'PUT',
+            '/api/custom-fields/values',
+            json={
+                'model': model,
+                'target_id': target_id,
+                'values': values,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Milestones
+    # ------------------------------------------------------------------
+
+    def milestones_list(self, *, immobilie_id: str) -> Any:
+        return self._request('GET', f'/api/milestones/immobilie/{immobilie_id}')
+
+    def milestones_create(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
+        return self._request(
+            'POST',
+            f'/api/milestones/immobilie/{immobilie_id}',
+            json=data,
+        )
+
+    def milestones_update(self, *, milestone_id: str, data: dict[str, Any]) -> Any:
+        return self._request('PUT', f'/api/milestones/{milestone_id}', json=data)
+
+    def milestones_delete(self, *, milestone_id: str) -> Any:
+        return self._request('DELETE', f'/api/milestones/{milestone_id}')
+
+    # ------------------------------------------------------------------
     # User
     # ------------------------------------------------------------------
 
