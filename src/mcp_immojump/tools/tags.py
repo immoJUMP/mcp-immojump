@@ -118,7 +118,7 @@ def tags_update_entity(
 
     entity_type: immobilie, contact, deal, etc.
     entity_id: the entity's UUID.
-    tag_ids: list of tag IDs to assign.
+    tag_ids: list of tag UUIDs to assign (replaces all existing tags).
     """
 
     ids = _require_list(field_name='tag_ids', value=tag_ids)

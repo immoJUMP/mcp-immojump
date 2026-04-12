@@ -90,18 +90,21 @@ def contacts_update(
 @mcp.tool()
 def contacts_update_status(
     contact_id,
-    status,
+    status_id,
     token,
     organisation_id,
     base_url=None,
 ):
-    """Change the status of a contact (e.g. active, archived)."""
+    """Change the pipeline status of a contact.
+
+    status_id: integer ID of the target status.
+    """
 
     result = _call_with_client(
         base_url=base_url,
         token=token,
         organisation_id=organisation_id,
-        callback=lambda client: client.contacts_update_status(contact_id=contact_id, status=status),
+        callback=lambda client: client.contacts_update_status(contact_id=contact_id, status_id=status_id),
     )
     return _ok(result)
 
