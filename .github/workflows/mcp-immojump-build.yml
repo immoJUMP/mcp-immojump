@@ -82,6 +82,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+      - name: Install kubectl
+        if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true')
+        run: |
+          curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
       - name: Rollout restart on Kubernetes
         if: success() && (github.event_name != 'workflow_dispatch' || github.event.inputs.push_image == 'true')
         env:
