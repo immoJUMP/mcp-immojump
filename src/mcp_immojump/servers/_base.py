@@ -7,6 +7,7 @@ import os
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
+from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .._shared import _resolve_mcp_host, _resolve_mcp_port, ctx_token, ctx_organisation_id
@@ -54,11 +55,12 @@ class _AuthMiddleware:
 class _OAuthFrontMiddleware:
     """Route OAuth paths to the OAuth app, everything else to the MCP app.
 
-    This avoids wrapping the MCP app in a new Starlette app (which breaks
-    the MCP lifespan/task-group initialization).
+    Also returns 401 + WWW-Authenticate for unauthenticated MCP requests
+    so OAuth clients (ChatGPT) can discover the auth server.
     """
 
     _OAUTH_PREFIXES = ('/.well-known/oauth-', '/oauth/')
+    _MCP_PATHS = ('/mcp', '/sse')
 
     def __init__(self, mcp_app: ASGIApp):
         self.mcp_app = mcp_app
@@ -67,9 +69,39 @@ class _OAuthFrontMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope['type'] == 'http':
             path = scope.get('path', '')
+
+            # OAuth routes → OAuth app
             if any(path.startswith(p) for p in self._OAUTH_PREFIXES):
                 await self.oauth_app(scope, receive, send)
                 return
+
+            # MCP routes without auth → 401 with WWW-Authenticate
+            if any(path.startswith(p) for p in self._MCP_PATHS):
+                headers = dict(scope.get('headers', []))
+                auth = headers.get(b'authorization', b'').decode().strip()
+                if not auth:
+                    server_url = os.getenv('IMMOJUMP_MCP_PUBLIC_URL', '').strip()
+                    if not server_url:
+                        host = next(
+                            (v.decode() for k, v in scope.get('headers', []) if k == b'host'),
+                            'mcp.immojump.de',
+                        )
+                        scheme = next(
+                            (v.decode() for k, v in scope.get('headers', []) if k == b'x-forwarded-proto'),
+                            'https',
+                        )
+                        server_url = f'{scheme}://{host}'
+                    metadata_url = f'{server_url}/.well-known/oauth-protected-resource'
+                    resp = Response(
+                        content='Unauthorized',
+                        status_code=401,
+                        headers={
+                            'WWW-Authenticate': f'Bearer resource_metadata="{metadata_url}", scope="immojump"',
+                        },
+                    )
+                    await resp(scope, receive, send)
+                    return
+
         await self.mcp_app(scope, receive, send)
 
 

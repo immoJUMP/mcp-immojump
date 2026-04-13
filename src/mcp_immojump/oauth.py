@@ -33,6 +33,9 @@ logger = logging.getLogger(__name__)
 # Auth codes expire after 5 minutes, keyed by code → {token, org_id, code_challenge, expires, redirect_uri, client_id}
 _auth_codes: dict[str, dict[str, Any]] = {}
 
+# Registered clients from DCR, keyed by client_id → {redirect_uris, ...}
+_registered_clients: dict[str, dict[str, Any]] = {}
+
 # Cleanup stale codes every request (simple, no background thread needed)
 _CODE_TTL = 300  # 5 minutes
 
@@ -210,6 +213,12 @@ async def authorize(request: Request) -> Response:
     if not redirect_uri:
         return HTMLResponse('<h1>Fehler: redirect_uri fehlt</h1>', status_code=400)
 
+    # Validate redirect_uri against registered client (if DCR was used)
+    if client_id and client_id in _registered_clients:
+        registered = _registered_clients[client_id]
+        if registered['redirect_uris'] and redirect_uri not in registered['redirect_uris']:
+            return HTMLResponse('<h1>Fehler: redirect_uri stimmt nicht mit der Registrierung überein</h1>', status_code=400)
+
     # Validate token against immoJUMP API (best-effort)
     import httpx
     try:
@@ -292,6 +301,7 @@ async def token(request: Request) -> JSONResponse:
         'access_token': access_token,
         'token_type': 'bearer',
         'scope': 'immojump',
+        'expires_in': 86400,  # 24 hours
     })
 
 
@@ -311,6 +321,11 @@ async def register(request: Request) -> JSONResponse:
     client_name = body.get('client_name', 'MCP Client')
     client_id = body.get('client_id') or f'immojump-{secrets.token_hex(8)}'
     redirect_uris = body.get('redirect_uris', [])
+
+    _registered_clients[client_id] = {
+        'client_name': client_name,
+        'redirect_uris': redirect_uris,
+    }
 
     return JSONResponse({
         'client_id': client_id,
