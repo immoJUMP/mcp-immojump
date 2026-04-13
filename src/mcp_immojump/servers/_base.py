@@ -60,7 +60,7 @@ class _OAuthFrontMiddleware:
     """
 
     _OAUTH_PREFIXES = ('/.well-known/oauth-', '/oauth/')
-    _MCP_PATHS = ('/mcp', '/sse')
+    _MCP_PATHS = ('/mcp', '/sse', '/messages')
 
     def __init__(self, mcp_app: ASGIApp):
         self.mcp_app = mcp_app
@@ -120,13 +120,16 @@ class _DualTransportApp:
     This middleware routes based on path prefix.
     """
 
+    # SSE transport uses GET /sse for event stream + POST /messages for requests
+    _SSE_PATHS = ('/sse', '/messages')
+
     def __init__(self, mcp: FastMCP):
         self.sse_app = _AuthMiddleware(mcp.sse_app())
         self.http_app = _AuthMiddleware(mcp.streamable_http_app())
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         path = scope.get('path', '')
-        if path.startswith('/sse'):
+        if any(path.startswith(p) for p in self._SSE_PATHS):
             await self.sse_app(scope, receive, send)
         else:
             await self.http_app(scope, receive, send)
