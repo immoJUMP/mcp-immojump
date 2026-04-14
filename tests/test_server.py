@@ -12,8 +12,10 @@ def test_resolve_credentials_requires_token_from_some_source(monkeypatch: pytest
     with pytest.raises(ValueError):
         server._resolve_credentials(base_url=None, token=None, organisation_id='org-1')
 
-    with pytest.raises(ValueError):
-        server._resolve_credentials(base_url=None, token='abc', organisation_id=None)
+    # organisation_id=None is allowed (for user_me, organisation_list)
+    creds = server._resolve_credentials(base_url=None, token='abc', organisation_id=None)
+    assert creds.token == 'abc'
+    assert creds.organisation_id == ''
 
 
 def test_resolve_credentials_falls_back_to_env_vars(monkeypatch: pytest.MonkeyPatch):

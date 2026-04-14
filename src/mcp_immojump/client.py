@@ -42,12 +42,10 @@ class ImmojumpCredentials:
             raise ValueError(f'base_url not allowed: {normalized_base_url}. Allowed: {allowed}')
         if not str(self.token or '').strip():
             raise ValueError('token is required')
-        if not str(self.organisation_id or '').strip():
-            raise ValueError('organisation_id is required')
 
         object.__setattr__(self, 'base_url', normalized_base_url)
         object.__setattr__(self, 'token', str(self.token).strip())
-        object.__setattr__(self, 'organisation_id', str(self.organisation_id).strip())
+        object.__setattr__(self, 'organisation_id', str(self.organisation_id or '').strip())
 
 
 def normalize_base_url(base_url: str) -> str:
@@ -82,15 +80,17 @@ class ImmojumpAPIClient:
         transport: httpx.BaseTransport | None = None,
     ):
         self.credentials = credentials
+        headers = {
+            'Authorization': f'Bearer {credentials.token}',
+            'Accept': 'application/json',
+        }
+        if credentials.organisation_id:
+            headers['X-Organisation-Id'] = credentials.organisation_id
         self._client = httpx.Client(
             base_url=credentials.base_url,
             timeout=timeout_seconds,
             transport=transport,
-            headers={
-                'Authorization': f'Bearer {credentials.token}',
-                'Accept': 'application/json',
-                'X-Organisation-Id': credentials.organisation_id,
-            },
+            headers=headers,
         )
 
     def close(self) -> None:
