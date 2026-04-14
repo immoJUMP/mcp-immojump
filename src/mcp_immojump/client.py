@@ -623,7 +623,8 @@ class ImmojumpAPIClient:
 
     def tickets_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
-        payload.setdefault('organisation_id', self.credentials.organisation_id)
+        # organisation_id comes from X-Organisation-Id header, not body
+        payload.pop('organisation_id', None)
         return self._request('POST', '/api/tickets', json=payload)
 
     def tickets_update(self, *, ticket_id: str, data: dict[str, Any]) -> Any:
