@@ -100,6 +100,8 @@ jobs:
           fi
           mkdir -p ~/.kube
           echo "${KUBECONFIG_DATA}" > ~/.kube/config
-          kubectl rollout restart deployment/mcp-immojump -n calc2-immojump-de
+          kubectl rollout restart deployment/mcp-immojump deployment/mcp-immojump-profi deployment/mcp-immojump-full -n calc2-immojump-de
           kubectl rollout status deployment/mcp-immojump -n calc2-immojump-de --timeout=120s
+          kubectl rollout status deployment/mcp-immojump-profi -n calc2-immojump-de --timeout=120s
+          kubectl rollout status deployment/mcp-immojump-full -n calc2-immojump-de --timeout=120s
           rm -f ~/.kube/config
