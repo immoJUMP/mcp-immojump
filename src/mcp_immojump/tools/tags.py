@@ -32,6 +32,8 @@ def register(mcp):
         """Create a new tag.
 
         data: {"name": "...", "color": "#hex", "entity_type": "immobilie"}.
+
+        - entity_type: immobilie, tickets, deals, contacts, or activities
         """
 
         payload = _require_dict(field_name='data', value=data)

@@ -75,7 +75,14 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Create activity template."""
+        """Create an activity template.
+
+        Fields in data:
+        - type: ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, or SONSTIGES
+        - status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
+        - priority: Hoch, Mittel, Niedrig, or NA
+        - mode: task, decision, or recurring
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
