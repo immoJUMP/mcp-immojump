@@ -10,7 +10,6 @@ Skip in CI (no --e2e flag): these tests are skipped by default.
 
 import json
 import os
-import time
 
 import httpx
 import pytest
@@ -174,7 +173,7 @@ class TestAlltag:
         resp = mcp.call_tool('deals_list', {'per_page': 5})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Deals geladen")
+        print("  → Deals geladen")
 
     def test_create_ticket(self, mcp):
         """'Erstelle ein Ticket: Mieterwechsel in WE3'"""
@@ -234,7 +233,7 @@ class TestAnkauf:
         })
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Milestone erstellt")
+        print("  → Milestone erstellt")
 
     def test_overdue_activities(self, mcp):
         """'Was steht als nächstes an? Zeig mir überfällige Aufgaben.'"""
@@ -249,7 +248,7 @@ class TestAnkauf:
         resp = mcp.call_tool('valuation_providers')
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Bewertungs-Provider geladen")
+        print("  → Bewertungs-Provider geladen")
 
     def test_document_list(self, mcp):
         """'Analysiere das Dokument...' — list docs for an existing property"""
@@ -287,7 +286,7 @@ class TestTeam:
         resp = mcp.call_tool('organisation_members', {'org_id': ORG_ID})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Mitglieder geladen")
+        print("  → Mitglieder geladen")
 
     def test_feed_create_post(self, mcp):
         """'Schreib im Team-Feed: Objekt in Aachen ist raus.'"""
@@ -298,21 +297,21 @@ class TestTeam:
         })
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Feed-Post erstellt")
+        print("  → Feed-Post erstellt")
 
     def test_email_list(self, mcp):
         """'Zeig mir meine ungelesenen E-Mails'"""
         resp = mcp.call_tool('email_list', {'per_page': 5})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → E-Mails geladen")
+        print("  → E-Mails geladen")
 
     def test_contacts_search(self, mcp):
         """'Suche in meinen Kontakten nach allen Maklern in Köln'"""
         resp = mcp.call_tool('contacts_list', {'search': 'Köln', 'per_page': 5})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
-        print(f"  → Kontakte durchsucht")
+        print("  → Kontakte durchsucht")
 
 
 # ---------------------------------------------------------------------------
@@ -323,29 +322,29 @@ class TestCleanup:
     def test_delete_test_activity(self, mcp):
         aid = getattr(TestAlltag, '_activity_id', None)
         if aid:
-            resp = mcp.call_tool('activities_delete', {'activity_id': aid})
+            mcp.call_tool('activities_delete', {'activity_id': aid})
             print(f"  → Aktivität gelöscht: {aid}")
 
     def test_delete_test_contact(self, mcp):
         cid = getattr(TestAlltag, '_contact_id', None)
         if cid:
-            resp = mcp.call_tool('contacts_delete', {'contact_id': cid})
+            mcp.call_tool('contacts_delete', {'contact_id': cid})
             print(f"  → Kontakt gelöscht: {cid}")
 
     def test_delete_test_ticket(self, mcp):
         tid = getattr(TestAlltag, '_ticket_id', None)
         if tid:
-            resp = mcp.call_tool('tickets_delete', {'ticket_id': tid})
+            mcp.call_tool('tickets_delete', {'ticket_id': tid})
             print(f"  → Ticket gelöscht: {tid}")
 
     def test_delete_test_duplicate(self, mcp):
         did = getattr(TestAnkauf, '_dup_id', None)
         if did:
-            resp = mcp.call_tool('immobilien_delete', {'immobilie_id': did})
+            mcp.call_tool('immobilien_delete', {'immobilie_id': did})
             print(f"  → Duplikat gelöscht: {did}")
 
     def test_delete_test_immobilie(self, mcp):
         iid = getattr(TestAnkauf, '_immo_id', None)
         if iid:
-            resp = mcp.call_tool('immobilien_delete', {'immobilie_id': iid})
+            mcp.call_tool('immobilien_delete', {'immobilie_id': iid})
             print(f"  → Immobilie gelöscht: {iid}")

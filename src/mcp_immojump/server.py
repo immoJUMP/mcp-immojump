@@ -1,7 +1,7 @@
-"""immoJUMP MCP server – monolithic entry point (all 195 tools).
+"""immoJUMP MCP server – monolithic entry point.
 
 For production use, prefer the domain-specific servers in ``servers/``
-(properties, crm, pipeline, org, investor) which each expose 26-58 tools.
+(properties, crm, pipeline, org) which each expose 36-58 tools.
 
 This monolithic server is kept for backward compatibility and development.
 """
@@ -39,7 +39,6 @@ from .tools import (
     email_messages,
     valuation,
     user,
-    investor,
     pipelines,
     statuses,
 )
@@ -69,7 +68,6 @@ feed.register(mcp)
 email_messages.register(mcp)
 valuation.register(mcp)
 user.register(mcp)
-investor.register(mcp)
 pipelines.register(mcp)
 statuses.register(mcp)
 
