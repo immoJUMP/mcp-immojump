@@ -83,8 +83,15 @@ def register(mcp):
     ):
         """Create a new activity/task.
 
-        Common fields: title, description, type (call/email/meeting/task),
-        due_date, assigned_to, priority, status.
+        Required fields in data:
+        - title: string
+        - type: ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, or SONSTIGES
+        - status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
+        - priority: Hoch, Mittel, Niedrig, or NA
+
+        Optional: description, due_date, assigned_to_id, immobilien_id, contact_ids.
+
+        Call activities_meta first if unsure about valid enum values.
         """
 
         payload = _require_dict(field_name='data', value=data)
