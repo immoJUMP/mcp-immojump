@@ -29,14 +29,9 @@ def test_org_server_tool_count():
     assert _tool_count(mcp) == 58
 
 
-def test_investor_server_tool_count():
-    from mcp_immojump.servers.investor import mcp
-    assert _tool_count(mcp) == 27
-
-
 def test_monolithic_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 196
+    assert _tool_count(mcp) == 170  # was 196, minus 27 investor, plus 1 activities_meta
 
 
 def test_every_server_includes_connection_test():
@@ -44,9 +39,8 @@ def test_every_server_includes_connection_test():
     from mcp_immojump.servers.crm import mcp as c
     from mcp_immojump.servers.pipeline import mcp as pl
     from mcp_immojump.servers.org import mcp as o
-    from mcp_immojump.servers.investor import mcp as i
 
-    for name, srv in [('properties', p), ('crm', c), ('pipeline', pl), ('org', o), ('investor', i)]:
+    for name, srv in [('properties', p), ('crm', c), ('pipeline', pl), ('org', o)]:
         assert 'connection_test' in _tool_names(srv), f'{name} missing connection_test'
 
 
@@ -56,14 +50,12 @@ def test_no_tool_overlap_between_servers():
     from mcp_immojump.servers.crm import mcp as c
     from mcp_immojump.servers.pipeline import mcp as pl
     from mcp_immojump.servers.org import mcp as o
-    from mcp_immojump.servers.investor import mcp as i
 
     servers = [
         ('properties', _tool_names(p) - {'connection_test'}),
         ('crm', _tool_names(c) - {'connection_test'}),
         ('pipeline', _tool_names(pl) - {'connection_test'}),
         ('org', _tool_names(o) - {'connection_test'}),
-        ('investor', _tool_names(i) - {'connection_test'}),
     ]
     for idx, (name_a, tools_a) in enumerate(servers):
         for name_b, tools_b in servers[idx + 1:]:
@@ -77,9 +69,8 @@ def test_domain_servers_cover_all_monolithic_tools():
     from mcp_immojump.servers.crm import mcp as c
     from mcp_immojump.servers.pipeline import mcp as pl
     from mcp_immojump.servers.org import mcp as o
-    from mcp_immojump.servers.investor import mcp as i
     from mcp_immojump.server import mcp as mono
 
-    union = _tool_names(p) | _tool_names(c) | _tool_names(pl) | _tool_names(o) | _tool_names(i)
+    union = _tool_names(p) | _tool_names(c) | _tool_names(pl) | _tool_names(o)
     mono_names = _tool_names(mono)
     assert union == mono_names, f'Missing: {mono_names - union}, Extra: {union - mono_names}'

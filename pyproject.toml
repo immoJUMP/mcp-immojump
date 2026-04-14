@@ -42,7 +42,6 @@ mcp-immojump-properties = "mcp_immojump.servers.properties:main"
 mcp-immojump-crm = "mcp_immojump.servers.crm:main"
 mcp-immojump-pipeline = "mcp_immojump.servers.pipeline:main"
 mcp-immojump-org = "mcp_immojump.servers.org:main"
-mcp-immojump-investor = "mcp_immojump.servers.investor:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
