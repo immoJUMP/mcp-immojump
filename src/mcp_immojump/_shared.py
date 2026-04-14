@@ -62,6 +62,13 @@ def _require_text(*, field_name: str, value: str | None) -> str:
 
 
 def _require_dict(*, field_name: str, value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        # Some MCP clients (ChatGPT) send JSON-encoded strings instead of objects
+        import json
+        try:
+            value = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            pass
     if not isinstance(value, dict):
         raise ValueError(f'{field_name} must be an object')
     return value
