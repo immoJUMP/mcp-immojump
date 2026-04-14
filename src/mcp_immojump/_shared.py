@@ -75,6 +75,13 @@ def _require_dict(*, field_name: str, value: Any) -> dict[str, Any]:
 
 
 def _require_list(*, field_name: str, value: Any) -> list[Any]:
+    if isinstance(value, str):
+        # Some MCP clients (ChatGPT) send JSON-encoded strings instead of arrays
+        import json
+        try:
+            value = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            pass
     if not isinstance(value, list):
         raise ValueError(f'{field_name} must be a list')
     return value
