@@ -93,7 +93,7 @@ def _resolve_credentials(
     return ImmojumpCredentials(
         base_url=base_url or os.getenv('IMMOJUMP_BASE_URL', ''),
         token=_require_text(field_name='token', value=resolved_token),
-        organisation_id=_require_text(field_name='organisation_id', value=resolved_org),
+        organisation_id=resolved_org or '',  # May be empty for user_me/organisation_list
     )
 
 

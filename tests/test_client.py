@@ -14,7 +14,7 @@ def test_credentials_allowlist_rejects_unknown_url():
         )
 
 
-def test_credentials_require_token_and_org_id():
+def test_credentials_require_token():
     with pytest.raises(ValueError):
         ImmojumpCredentials(
             base_url='http://localhost:8081',
@@ -22,12 +22,16 @@ def test_credentials_require_token_and_org_id():
             organisation_id='org-1',
         )
 
-    with pytest.raises(ValueError):
-        ImmojumpCredentials(
-            base_url='http://localhost:8081',
-            token='abc',
-            organisation_id='',
-        )
+
+def test_credentials_allow_empty_org_id():
+    """organisation_id may be empty for user_me/organisation_list calls."""
+    creds = ImmojumpCredentials(
+        base_url='http://localhost:8081',
+        token='abc',
+        organisation_id='',
+    )
+    assert creds.token == 'abc'
+    assert creds.organisation_id == ''
 
 
 def test_contacts_import_preview_json_payload_contains_org_id():
