@@ -37,7 +37,11 @@ test = [
 ]
 
 [project.scripts]
+# Tier-based entry points (recommended for end users)
+mcp-immojump-standard = "mcp_immojump.servers.standard:main"
+mcp-immojump-profi = "mcp_immojump.servers.profi:main"
 mcp-immojump = "mcp_immojump.server:main"
+# Domain-based entry points (for advanced/selective use)
 mcp-immojump-properties = "mcp_immojump.servers.properties:main"
 mcp-immojump-crm = "mcp_immojump.servers.crm:main"
 mcp-immojump-pipeline = "mcp_immojump.servers.pipeline:main"

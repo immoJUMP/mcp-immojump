@@ -1,4 +1,4 @@
-"""Verify each domain server registers the expected number of tools."""
+"""Verify server tiers and domain servers register expected tool counts."""
 
 
 def _tool_count(mcp_instance) -> int:
@@ -8,6 +8,72 @@ def _tool_count(mcp_instance) -> int:
 def _tool_names(mcp_instance) -> set[str]:
     return set(mcp_instance._tool_manager._tools.keys())
 
+
+# ---------------------------------------------------------------------------
+# Tier-based servers (user-facing)
+# ---------------------------------------------------------------------------
+
+def test_standard_server_tool_count():
+    from mcp_immojump.servers.standard import mcp
+    assert _tool_count(mcp) == 87
+
+
+def test_profi_server_tool_count():
+    from mcp_immojump.servers.profi import mcp
+    assert _tool_count(mcp) == 129
+
+
+def test_full_server_tool_count():
+    from mcp_immojump.server import mcp
+    assert _tool_count(mcp) == 170
+
+
+def test_standard_is_subset_of_profi():
+    from mcp_immojump.servers.standard import mcp as std
+    from mcp_immojump.servers.profi import mcp as pro
+    std_tools = _tool_names(std)
+    pro_tools = _tool_names(pro)
+    assert std_tools.issubset(pro_tools), f'Standard has tools not in Profi: {std_tools - pro_tools}'
+
+
+def test_profi_is_subset_of_full():
+    from mcp_immojump.servers.profi import mcp as pro
+    from mcp_immojump.server import mcp as full
+    pro_tools = _tool_names(pro)
+    full_tools = _tool_names(full)
+    assert pro_tools.issubset(full_tools), f'Profi has tools not in Full: {pro_tools - full_tools}'
+
+
+def test_standard_has_core_tools():
+    """Standard must include core investor workflow tools."""
+    from mcp_immojump.servers.standard import mcp
+    names = _tool_names(mcp)
+    for tool in ['immobilien_list', 'contacts_create', 'activities_create',
+                 'pipeline_list', 'documents_list', 'tags_list',
+                 'activity_template_create', 'status_list']:
+        assert tool in names, f'Standard missing core tool: {tool}'
+
+
+def test_standard_excludes_profi_tools():
+    """Standard must NOT include deals, tickets, milestones."""
+    from mcp_immojump.servers.standard import mcp
+    names = _tool_names(mcp)
+    for tool in ['deals_list', 'tickets_create', 'milestones_create',
+                 'custom_fields_definitions_list', 'email_list']:
+        assert tool not in names, f'Standard should not have profi tool: {tool}'
+
+
+def test_every_tier_includes_connection_test():
+    from mcp_immojump.servers.standard import mcp as std
+    from mcp_immojump.servers.profi import mcp as pro
+    from mcp_immojump.server import mcp as full
+    for name, srv in [('standard', std), ('profi', pro), ('full', full)]:
+        assert 'connection_test' in _tool_names(srv), f'{name} missing connection_test'
+
+
+# ---------------------------------------------------------------------------
+# Domain-based servers (advanced use)
+# ---------------------------------------------------------------------------
 
 def test_properties_server_tool_count():
     from mcp_immojump.servers.properties import mcp
@@ -29,22 +95,7 @@ def test_org_server_tool_count():
     assert _tool_count(mcp) == 58
 
 
-def test_monolithic_server_tool_count():
-    from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 170  # was 196, minus 27 investor, plus 1 activities_meta
-
-
-def test_every_server_includes_connection_test():
-    from mcp_immojump.servers.properties import mcp as p
-    from mcp_immojump.servers.crm import mcp as c
-    from mcp_immojump.servers.pipeline import mcp as pl
-    from mcp_immojump.servers.org import mcp as o
-
-    for name, srv in [('properties', p), ('crm', c), ('pipeline', pl), ('org', o)]:
-        assert 'connection_test' in _tool_names(srv), f'{name} missing connection_test'
-
-
-def test_no_tool_overlap_between_servers():
+def test_no_tool_overlap_between_domain_servers():
     """Domain servers should not share tools (except connection_test)."""
     from mcp_immojump.servers.properties import mcp as p
     from mcp_immojump.servers.crm import mcp as c
@@ -63,8 +114,8 @@ def test_no_tool_overlap_between_servers():
             assert not overlap, f'{name_a} and {name_b} share tools: {overlap}'
 
 
-def test_domain_servers_cover_all_monolithic_tools():
-    """The union of all domain servers must equal the monolithic server."""
+def test_domain_servers_cover_all_full_tools():
+    """The union of all domain servers must equal the full server."""
     from mcp_immojump.servers.properties import mcp as p
     from mcp_immojump.servers.crm import mcp as c
     from mcp_immojump.servers.pipeline import mcp as pl
