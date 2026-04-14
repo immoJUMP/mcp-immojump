@@ -111,17 +111,20 @@ def test_tickets_list_path():
     assert captured['path'] == '/api/tickets'
 
 
-def test_tickets_create_includes_org():
+def test_tickets_create_excludes_org_from_body():
+    """Ticket backend reads org from X-Organisation-Id header, not body."""
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['json'] = json.loads(req.read())
+        captured['x_org'] = req.headers.get('X-Organisation-Id')
         return httpx.Response(201, json={})
 
     with _capture_client(handler) as client:
         client.tickets_create(data={'title': 'Bug', 'priority': 'high'})
 
-    assert captured['json']['organisation_id'] == 'org-1'
+    assert 'organisation_id' not in captured['json']  # NOT in body
+    assert captured['x_org'] == 'org-1'  # in header
     assert captured['json']['title'] == 'Bug'
 
 
