@@ -75,6 +75,10 @@ def register(mcp):
 
         Common fields: title, description, status, priority,
         assigned_to, immobilie_id, contact_id, due_date.
+
+        - priority: low, medium, high, or urgent
+        - status: UUID of a ticket status column.
+          Use tickets_statuses to list available statuses.
         """
 
         payload = _require_dict(field_name='data', value=data)

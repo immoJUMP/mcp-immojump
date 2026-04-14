@@ -47,6 +47,8 @@ def register(mcp):
 
         Common fields: name, wohnflaeche, miete_kalt, miete_ist,
         zimmer, stockwerk, leerstand.
+
+        - unit_type: wohnen, gewerbe, stellplatz, garage, or sonstiges
         """
 
         payload = _require_dict(field_name='data', value=data)

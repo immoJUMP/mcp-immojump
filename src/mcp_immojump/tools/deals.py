@@ -62,6 +62,10 @@ def register(mcp):
 
         Required: pipeline_id, status_id, immobilie_id.
         Optional: contact_id, title, value, notes.
+
+        - pipeline_id: UUID of the pipeline (use pipeline_list to get available pipelines).
+        - status_id: UUID of the pipeline status/stage (use pipeline_statuses_list to get
+          available statuses for a pipeline).
         """
 
         payload = _require_dict(field_name='data', value=data)

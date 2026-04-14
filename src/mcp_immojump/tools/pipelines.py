@@ -65,7 +65,10 @@ def register(mcp):
         order=None,
         base_url=None,
     ):
-        """Create a pipeline."""
+        """Create a pipeline.
+
+        - entity_type: immobilie, contact, or deal (default: immobilie)
+        """
 
         payload: dict[str, Any] = {'name': name, 'entity_type': entity_type}
         if description is not None:
