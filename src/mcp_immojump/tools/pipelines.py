@@ -59,9 +59,6 @@ def register(mcp):
         token=None,
         organisation_id=None,
         entity_type='immobilie',
-        description=None,
-        icon=None,
-        tags=None,
         order=None,
         base_url=None,
     ):
@@ -71,12 +68,6 @@ def register(mcp):
         """
 
         payload: dict[str, Any] = {'name': name, 'entity_type': entity_type}
-        if description is not None:
-            payload['description'] = description
-        if icon is not None:
-            payload['icon'] = icon
-        if tags is not None:
-            payload['tags'] = tags
         if order is not None:
             payload['order'] = order
 
@@ -95,9 +86,6 @@ def register(mcp):
         organisation_id=None,
         name=None,
         entity_type=None,
-        description=None,
-        icon=None,
-        tags=None,
         order=None,
         regenerate_inbound_email_prefix=None,
         base_url=None,
@@ -109,12 +97,6 @@ def register(mcp):
             payload['name'] = name
         if entity_type is not None:
             payload['entity_type'] = entity_type
-        if description is not None:
-            payload['description'] = description
-        if icon is not None:
-            payload['icon'] = icon
-        if tags is not None:
-            payload['tags'] = tags
         if order is not None:
             payload['order'] = order
         if regenerate_inbound_email_prefix is not None:
