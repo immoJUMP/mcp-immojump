@@ -30,7 +30,7 @@ def register(mcp):
     ):
         """List tickets (Kanban cards) with pagination and optional filters.
 
-        - status: filter by ticket status
+        - status: ticket status name string (use tickets_statuses to get valid values)
         - search: free-text query
         """
 
@@ -73,12 +73,21 @@ def register(mcp):
     ):
         """Create a new ticket.
 
-        Common fields: title, description, status, priority,
-        assigned_to, immobilie_id, contact_id, due_date.
+        data: JSON object with:
 
+        Required:
+        - title: string
+
+        Optional:
+        - description: string (plain text or HTML)
+        - status: UUID string of a ticket status column
+          (use tickets_statuses to list available statuses)
         - priority: low, medium, high, or urgent
-        - status: UUID of a ticket status column.
-          Use tickets_statuses to list available statuses.
+        - assigned_to: UUID of the user to assign
+        - immobilie_id: integer ID of the linked property
+        - contact_id: UUID of the linked contact
+        - due_date: ISO datetime or date-only string, e.g. "2026-05-15"
+          (auto-expanded to midnight UTC)
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -98,7 +107,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update a ticket (full update)."""
+        """Update a ticket (full replace — include all fields you want to keep).
+
+        ticket_id: UUID of the ticket.
+        data: same fields as tickets_create. due_date accepts date-only strings.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(

@@ -15,8 +15,8 @@ def register(mcp):
     ):
         """List deals with pagination and optional filters.
 
-        - pipeline_id: filter by pipeline
-        - status_id: filter by pipeline status
+        - pipeline_id: integer ID of a pipeline (use pipeline_list)
+        - status_id: integer ID of a pipeline status (use pipeline_statuses_list)
         - search: free-text query
         """
 
@@ -60,12 +60,21 @@ def register(mcp):
     ):
         """Create a new deal.
 
-        Required: pipeline_id, status_id, immobilie_id.
-        Optional: contact_id, title, value, notes.
+        data: JSON object with:
 
-        - pipeline_id: UUID of the pipeline (use pipeline_list to get available pipelines).
-        - status_id: UUID of the pipeline status/stage (use pipeline_statuses_list to get
-          available statuses for a pipeline).
+        Required:
+        - pipeline_id: integer ID of the pipeline (use pipeline_list)
+        - status_id: integer ID of a status within that pipeline
+          (use pipeline_statuses_list to get statuses for a pipeline)
+        - immobilie_id: integer ID of the linked property
+
+        Optional:
+        - contact_id: UUID of the linked contact
+        - title: string
+        - value: number (deal value in EUR)
+        - notes: string
+        - expected_close_date: ISO datetime or date-only string, e.g. "2026-06-01"
+          (auto-expanded to midnight UTC)
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -85,9 +94,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update an existing deal (partial update via PATCH).
+        """Update an existing deal (partial update via PATCH — only provided fields change).
 
-        Change status_id to move the deal to a different pipeline stage.
+        deal_id: UUID of the deal.
+        data: same fields as deals_create. Change status_id to move the deal
+        to a different pipeline stage. expected_close_date accepts date-only strings.
         """
 
         payload = _require_dict(field_name='data', value=data)

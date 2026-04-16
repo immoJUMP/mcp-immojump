@@ -52,8 +52,16 @@ def register(mcp):
     ):
         """Create a new contact.
 
-        Common fields: first_name, last_name, email, phone, mobile,
-        company, position, address, notes, tags.
+        data: JSON object with:
+
+        Common fields:
+        - first_name, last_name: string
+        - email: string
+        - phone, mobile: string (any format)
+        - company, position: string
+        - address: string
+        - notes: string
+        - tags: list of tag UUID strings
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -73,7 +81,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update an existing contact (full replace)."""
+        """Update an existing contact (full replace — include all fields you want to keep).
+
+        contact_id: UUID of the contact.
+        data: same fields as contacts_create. Omitted fields may be cleared.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
@@ -94,7 +106,9 @@ def register(mcp):
     ):
         """Change the pipeline status of a contact.
 
-        status_id: integer ID of the target status.
+        contact_id: UUID of the contact.
+        status_id: integer ID of the target pipeline status
+        (use pipeline_statuses_list to find valid status IDs for a pipeline).
         """
 
         result = _call_with_client(
@@ -360,7 +374,10 @@ def register(mcp):
     ):
         """Preview duplicate-contact groups.
 
-        by: comma-separated match criteria (email, phone, mobile, name).
+        - by: comma-separated match criteria. Default: 'email,phone,mobile,name'.
+        - min_count: minimum duplicates in a group. Default: 2.
+        - limit_groups: max groups to return. Default: 200.
+        - ignore_generic_names: skip obvious false positives. Default: true.
         """
 
         result = _call_with_client(
@@ -386,8 +403,11 @@ def register(mcp):
     ):
         """Execute contact merge for confirmed duplicates.
 
-        primary_id: the contact to keep.
-        duplicate_ids: list of contacts to merge into primary.
+        primary_id: UUID of the contact to keep.
+        duplicate_ids: list of contact UUID strings to merge into primary.
+        All activities, properties, and emails from duplicates are reassigned
+        to the primary. Duplicate contacts are deleted. Use contacts_merge_logs
+        and contacts_merge_restore to undo if needed.
         """
 
         result = _call_with_client(

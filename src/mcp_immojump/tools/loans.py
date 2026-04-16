@@ -27,8 +27,23 @@ def register(mcp):
     ):
         """Create a new loan.
 
-        Common fields: immobilie_id, bank_name, loan_amount, interest_rate,
-        repayment_rate, term_years, start_date, type (annuity/bullet/etc).
+        data: JSON object with:
+
+        Required:
+        - immobilie_id: integer ID of the property
+        - loan_amount: number (EUR)
+        - interest_rate: number (percent, e.g. 3.5)
+        - start_date: date string "YYYY-MM-DD", e.g. "2026-01-01"
+          (full datetimes are auto-truncated to date)
+
+        Optional:
+        - bank_name: string
+        - repayment_rate: number (percent, e.g. 2.0)
+        - term_years: integer
+        - amortization_start_date: date string "YYYY-MM-DD" (if repayment
+          starts later than start_date)
+        - type: annuity, bullet, or endfaellig
+        - notes: string
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -48,7 +63,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update an existing loan."""
+        """Update an existing loan (partial — only provided fields change).
+
+        loan_id: integer ID of the loan.
+        data: same fields as loans_create. Date fields accept "YYYY-MM-DD" format.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
@@ -100,7 +119,10 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Calculate outstanding amounts for the given loan IDs."""
+        """Calculate outstanding amounts for the given loan IDs.
+
+        loan_ids: list of integer loan IDs, e.g. [1, 2, 3].
+        """
 
         ids = _require_list(field_name='loan_ids', value=loan_ids)
         result = _call_with_client(

@@ -41,7 +41,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """List activity templates bound to a status."""
+        """List activity templates bound to a pipeline status.
+
+        status_id: integer ID of a pipeline status (not an activity status string).
+        Use pipeline_statuses_list to find valid status IDs.
+        """
 
         result = _call_with_client(
             base_url=base_url,
@@ -77,11 +81,26 @@ def register(mcp):
     ):
         """Create an activity template.
 
-        Fields in data:
+        data: JSON object with:
+
+        Required:
+        - title: string
+        - activity_status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
         - type: ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, or SONSTIGES
-        - status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
         - priority: Hoch, Mittel, Niedrig, or NA
         - mode: task, decision, or recurring
+          (recurring requires recurrence_rule, e.g. "FREQ=WEEKLY;INTERVAL=1")
+
+        Optional:
+        - description: string (plain text or HTML)
+        - status_id: integer ID of a pipeline status — binds this template
+          to a pipeline phase (auto-created when entity enters that status)
+        - assigned_to_id: UUID of user to auto-assign
+        - assigned_role_id: UUID of a role to auto-assign
+        - start_in_days: integer — auto-set start date N days after creation
+        - end_in_days: integer — auto-set due date N days after creation
+        - decision_question: string (required when mode=decision)
+        - outcomes: list of outcome objects for decision workflows
         """
 
         payload = _require_dict(field_name='data', value=data)
