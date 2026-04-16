@@ -10,7 +10,6 @@ The client must normalize these before forwarding to the API.
 import json
 
 import httpx
-import pytest
 
 from mcp_immojump.client import (
     ImmojumpAPIClient,
