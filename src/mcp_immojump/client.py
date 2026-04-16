@@ -20,6 +20,37 @@ ALLOWED_BASE_URLS = {
 logger = logging.getLogger(__name__)
 
 
+def _normalize_due_date(value: Any) -> Any:
+    """Coerce a user-supplied due date into the ISO datetime format the API expects.
+
+    Accepts:
+    - date-only strings "YYYY-MM-DD" -> expanded to "YYYY-MM-DDT00:00:00+00:00"
+    - full ISO datetime strings (with or without timezone) -> normalized to UTC
+    - empty/None -> returned unchanged
+
+    Anything else (non-string, unparseable) is returned unchanged so the
+    backend still produces its own validation error.
+    """
+    if value is None:
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return value
+    try:
+        if len(text) == 10 and text[4] == '-' and text[7] == '-':
+            dt = datetime.fromisoformat(text)
+        else:
+            normalized = text[:-1] + '+00:00' if text.endswith('Z') else text
+            dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        return value
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+
+
 class ImmojumpAPIError(RuntimeError):
     """Raised when the ImmoJUMP API returns an error response."""
 
@@ -406,11 +437,15 @@ class ImmojumpAPIClient:
     def activities_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        if 'due_date' in payload:
+            payload['due_date'] = _normalize_due_date(payload['due_date'])
         return self._request('POST', '/api/activities/activities', json=payload)
 
     def activities_create_for_property(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        if 'due_date' in payload:
+            payload['due_date'] = _normalize_due_date(payload['due_date'])
         return self._request(
             'POST',
             f'/api/activities/activities/immobilie/{immobilie_id}',
@@ -418,7 +453,10 @@ class ImmojumpAPIClient:
         )
 
     def activities_update(self, *, activity_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/activities/activities/{activity_id}', json=data)
+        payload = dict(data)
+        if 'due_date' in payload:
+            payload['due_date'] = _normalize_due_date(payload['due_date'])
+        return self._request('PUT', f'/api/activities/activities/{activity_id}', json=payload)
 
     def activities_delete(self, *, activity_id: str) -> Any:
         return self._request('DELETE', f'/api/activities/activities/{activity_id}')

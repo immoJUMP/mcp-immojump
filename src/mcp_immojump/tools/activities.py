@@ -89,7 +89,11 @@ def register(mcp):
         - status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
         - priority: Hoch, Mittel, Niedrig, or NA
 
-        Optional: description, due_date, assigned_to_id, immobilien_id, contact_ids.
+        Optional:
+        - description, assigned_to_id, immobilien_id, contact_ids
+        - due_date: ISO datetime, e.g. "2026-04-23T09:00:00Z".
+          Date-only strings like "2026-04-23" are also accepted and
+          expanded to midnight UTC automatically.
 
         Call activities_meta first if unsure about valid enum values.
         """
