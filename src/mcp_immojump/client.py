@@ -20,16 +20,14 @@ ALLOWED_BASE_URLS = {
 logger = logging.getLogger(__name__)
 
 
-def _normalize_due_date(value: Any) -> Any:
-    """Coerce a user-supplied due date into the ISO datetime format the API expects.
+def _normalize_datetime(value: Any) -> Any:
+    """Coerce a user-supplied value into ISO datetime (UTC).
 
     Accepts:
-    - date-only strings "YYYY-MM-DD" -> expanded to "YYYY-MM-DDT00:00:00+00:00"
-    - full ISO datetime strings (with or without timezone) -> normalized to UTC
-    - empty/None -> returned unchanged
-
-    Anything else (non-string, unparseable) is returned unchanged so the
-    backend still produces its own validation error.
+    - date-only strings "YYYY-MM-DD" -> "YYYY-MM-DDT00:00:00+00:00"
+    - full ISO datetime strings (with or without tz) -> normalized to UTC
+    - None / empty -> returned unchanged
+    - Non-string / unparseable -> returned unchanged (backend validates)
     """
     if value is None:
         return value
@@ -49,6 +47,49 @@ def _normalize_due_date(value: Any) -> Any:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc).isoformat()
+
+
+# Keep backward-compat alias used in tests
+_normalize_due_date = _normalize_datetime
+
+
+def _normalize_date_only(value: Any) -> Any:
+    """Coerce a user-supplied value into date-only string "YYYY-MM-DD".
+
+    Accepts:
+    - date-only strings "YYYY-MM-DD" -> returned as-is
+    - full ISO datetime strings -> truncated to date part
+    - None / empty / non-string / unparseable -> returned unchanged
+    """
+    if value is None:
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return value
+    # Already date-only
+    if len(text) == 10 and text[4] == '-' and text[7] == '-':
+        return text
+    # Full datetime — extract the date part from the input (user's local date,
+    # not UTC-converted) since date-only columns represent calendar dates.
+    try:
+        # Validate it parses as a datetime, then take the first 10 chars
+        normalized = text[:-1] + '+00:00' if text.endswith('Z') else text
+        datetime.fromisoformat(normalized)  # validate only
+        return text[:10]
+    except ValueError:
+        return value
+
+
+def _normalize_payload_dates(payload: dict[str, Any], datetime_fields: tuple[str, ...] = (), date_fields: tuple[str, ...] = ()) -> None:
+    """Normalize date/datetime fields in a payload dict in-place."""
+    for field in datetime_fields:
+        if field in payload:
+            payload[field] = _normalize_datetime(payload[field])
+    for field in date_fields:
+        if field in payload:
+            payload[field] = _normalize_date_only(payload[field])
 
 
 class ImmojumpAPIError(RuntimeError):
@@ -437,15 +478,13 @@ class ImmojumpAPIClient:
     def activities_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
-        if 'due_date' in payload:
-            payload['due_date'] = _normalize_due_date(payload['due_date'])
+        _normalize_payload_dates(payload, datetime_fields=('due_date',))
         return self._request('POST', '/api/activities/activities', json=payload)
 
     def activities_create_for_property(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
-        if 'due_date' in payload:
-            payload['due_date'] = _normalize_due_date(payload['due_date'])
+        _normalize_payload_dates(payload, datetime_fields=('due_date',))
         return self._request(
             'POST',
             f'/api/activities/activities/immobilie/{immobilie_id}',
@@ -454,8 +493,7 @@ class ImmojumpAPIClient:
 
     def activities_update(self, *, activity_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
-        if 'due_date' in payload:
-            payload['due_date'] = _normalize_due_date(payload['due_date'])
+        _normalize_payload_dates(payload, datetime_fields=('due_date',))
         return self._request('PUT', f'/api/activities/activities/{activity_id}', json=payload)
 
     def activities_delete(self, *, activity_id: str) -> Any:
@@ -621,10 +659,13 @@ class ImmojumpAPIClient:
     def deals_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
         return self._request('POST', '/api/deals', json=payload)
 
     def deals_update(self, *, deal_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PATCH', f'/api/deals/{deal_id}', json=data)
+        payload = dict(data)
+        _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
+        return self._request('PATCH', f'/api/deals/{deal_id}', json=payload)
 
     # ------------------------------------------------------------------
     # Tickets
@@ -663,10 +704,13 @@ class ImmojumpAPIClient:
         payload = dict(data)
         # organisation_id comes from X-Organisation-Id header, not body
         payload.pop('organisation_id', None)
+        _normalize_payload_dates(payload, datetime_fields=('due_date',))
         return self._request('POST', '/api/tickets', json=payload)
 
     def tickets_update(self, *, ticket_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/tickets/{ticket_id}', json=data)
+        payload = dict(data)
+        _normalize_payload_dates(payload, datetime_fields=('due_date',))
+        return self._request('PUT', f'/api/tickets/{ticket_id}', json=payload)
 
     def tickets_delete(self, *, ticket_id: str) -> Any:
         return self._request('DELETE', f'/api/tickets/{ticket_id}')
@@ -752,10 +796,13 @@ class ImmojumpAPIClient:
     def loans_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        _normalize_payload_dates(payload, date_fields=('start_date', 'amortization_start_date'))
         return self._request('POST', '/api/loans', json=payload)
 
     def loans_update(self, *, loan_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/loans/{loan_id}', json=data)
+        payload = dict(data)
+        _normalize_payload_dates(payload, date_fields=('start_date', 'amortization_start_date'))
+        return self._request('PUT', f'/api/loans/{loan_id}', json=payload)
 
     def loans_delete(self, *, loan_id: str) -> Any:
         return self._request('DELETE', f'/api/loans/{loan_id}')
@@ -1323,14 +1370,18 @@ class ImmojumpAPIClient:
         return self._request('GET', f'/api/milestones/immobilie/{immobilie_id}')
 
     def milestones_create(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
+        payload = dict(data)
+        _normalize_payload_dates(payload, datetime_fields=('date', 'completed_at'))
         return self._request(
             'POST',
             f'/api/milestones/immobilie/{immobilie_id}',
-            json=data,
+            json=payload,
         )
 
     def milestones_update(self, *, milestone_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/milestones/{milestone_id}', json=data)
+        payload = dict(data)
+        _normalize_payload_dates(payload, datetime_fields=('date', 'completed_at'))
+        return self._request('PUT', f'/api/milestones/{milestone_id}', json=payload)
 
     def milestones_delete(self, *, milestone_id: str) -> Any:
         return self._request('DELETE', f'/api/milestones/{milestone_id}')
