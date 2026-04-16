@@ -254,6 +254,67 @@ def test_activities_statistics_path():
 
 
 # ---------------------------------------------------------------------------
+# Activities — due_date normalization
+# ---------------------------------------------------------------------------
+
+def test_activities_create_expands_date_only_due_date():
+    """'2026-04-23' should be expanded to full ISO datetime at midnight UTC."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.activities_create(data={'title': 'Test', 'due_date': '2026-04-23'})
+
+    assert captured['json']['due_date'] == '2026-04-23T00:00:00+00:00'
+
+
+def test_activities_create_passes_through_full_iso_datetime():
+    """A full ISO datetime should be normalized to UTC but otherwise kept."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.activities_create(data={'title': 'Test', 'due_date': '2026-04-23T09:00:00Z'})
+
+    assert captured['json']['due_date'] == '2026-04-23T09:00:00+00:00'
+
+
+def test_activities_update_normalizes_due_date():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        client.activities_update(activity_id='a-1', data={'due_date': '2026-05-01'})
+
+    assert captured['json']['due_date'] == '2026-05-01T00:00:00+00:00'
+
+
+def test_activities_create_for_property_normalizes_due_date():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.activities_create_for_property(
+            immobilie_id='imm-1',
+            data={'title': 'Besichtigung', 'due_date': '2026-06-15'},
+        )
+
+    assert captured['json']['due_date'] == '2026-06-15T00:00:00+00:00'
+
+
+# ---------------------------------------------------------------------------
 # Tags
 # ---------------------------------------------------------------------------
 
