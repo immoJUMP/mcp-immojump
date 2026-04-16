@@ -83,17 +83,21 @@ def register(mcp):
     ):
         """Create a new activity/task.
 
-        Required fields in data:
+        data: JSON object with:
+
+        Required:
         - title: string
         - type: ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, or SONSTIGES
-        - status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
+        - activity_status: Geplant, In Bearbeitung, Abgeschlossen, or Abgebrochen
         - priority: Hoch, Mittel, Niedrig, or NA
 
         Optional:
-        - description, assigned_to_id, immobilien_id, contact_ids
-        - due_date: ISO datetime, e.g. "2026-04-23T09:00:00Z".
-          Date-only strings like "2026-04-23" are also accepted and
-          expanded to midnight UTC automatically.
+        - description: string (plain text or HTML)
+        - due_date: ISO datetime or date-only string, e.g. "2026-04-23T09:00:00Z"
+          or "2026-04-23" (auto-expanded to midnight UTC)
+        - assigned_to_id: UUID of the user to assign
+        - immobilien_id: integer ID of the linked property
+        - contact_ids: list of contact UUID strings, e.g. ["uuid-1", "uuid-2"]
 
         Call activities_meta first if unsure about valid enum values.
         """
@@ -115,7 +119,12 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Create an activity linked to a specific property."""
+        """Create an activity linked to a specific property.
+
+        immobilie_id: integer ID of the property.
+        data: same fields as activities_create (title, type, activity_status, priority required).
+        The activity is automatically linked to the property.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
@@ -136,7 +145,12 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update an existing activity."""
+        """Update an existing activity.
+
+        activity_id: UUID of the activity.
+        data: JSON object with fields to update (partial — only provided fields change).
+        Same fields as activities_create. due_date accepts date-only strings.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(

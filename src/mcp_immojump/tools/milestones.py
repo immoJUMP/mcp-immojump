@@ -41,14 +41,16 @@ def register(mcp):
 
         Required in data:
         - type: milestone type (see milestones_list for enum values)
-        - date: ISO date or datetime string, e.g. "2026-06-15"
+        - date: ISO datetime or date-only string, e.g. "2026-06-15" or
+          "2026-06-15T10:00:00Z" (date-only auto-expanded to midnight UTC)
 
         Optional:
         - title: custom title (auto-generated from type if omitted)
         - description: notes
         - all_day: true (default) or false for time-specific milestones
         - status: PLANNED (default), DONE, or MISSED
-        - completed_at: ISO datetime (for DONE status)
+        - completed_at: ISO datetime or date-only, e.g. "2026-06-20"
+          (auto-expanded to midnight UTC)
         - reminder_days_before: list of ints, e.g. [7, 14] for reminders
         - links_json: list of {"url": "...", "title": "..."} objects
 
