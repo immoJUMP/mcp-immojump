@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict
+from .._shared import _call_with_client, _ok, _require_dict, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def status_list(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def status_update(
         status_id,
         data,
@@ -37,7 +37,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def status_delete(
         status_id,
         token=None,
@@ -54,7 +54,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def status_swap_order(
         current_status_id,
         target_status_id,
@@ -79,7 +79,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def status_inbound_aliases_list(
         status_id,
         token=None,
@@ -96,7 +96,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def status_inbound_alias_create(
         status_id,
         token=None,

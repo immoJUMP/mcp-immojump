@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlparse
 
 import uvicorn
 from mcp.server.fastmcp import FastMCP
@@ -12,6 +13,56 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .._shared import _resolve_mcp_host, _resolve_mcp_port, ctx_token, ctx_organisation_id
 from ..oauth import create_oauth_routes, decode_access_token
+
+
+# ---------------------------------------------------------------------------
+# Origin header validation (DNS-rebind protection)
+# ---------------------------------------------------------------------------
+# Default allowlist covers the official MCP clients that consume this server
+# (Claude.ai, ChatGPT, Claude Desktop). Operators can extend via the
+# IMMOJUMP_MCP_ALLOWED_ORIGINS env var (comma-separated full origins, e.g.
+# "https://claude.ai,https://example.com").
+
+_DEFAULT_ALLOWED_ORIGINS: frozenset[str] = frozenset({
+    'https://claude.ai',
+    'https://claude.com',
+    'https://chat.openai.com',
+    'https://chatgpt.com',
+    # Local dev clients (loopback only)
+    'http://localhost',
+    'http://127.0.0.1',
+})
+
+
+def _allowed_origins() -> frozenset[str]:
+    extra = os.getenv('IMMOJUMP_MCP_ALLOWED_ORIGINS', '').strip()
+    if not extra:
+        return _DEFAULT_ALLOWED_ORIGINS
+    parsed = {origin.strip().rstrip('/') for origin in extra.split(',') if origin.strip()}
+    return _DEFAULT_ALLOWED_ORIGINS | frozenset(parsed)
+
+
+def _is_origin_allowed(origin: str) -> bool:
+    """Return True if the Origin header matches an allowed scheme+host(+port).
+
+    Matches either a full origin (https://host) or a loopback host prefix so
+    that dev clients bound to arbitrary ports are allowed without config.
+    """
+    if not origin:
+        return False
+    origin = origin.strip().rstrip('/')
+    allowed = _allowed_origins()
+    if origin in allowed:
+        return True
+    # Loopback match ignoring port (e.g. http://localhost:54321)
+    try:
+        parsed = urlparse(origin)
+    except ValueError:
+        return False
+    if parsed.scheme != 'http':
+        return False
+    host = (parsed.hostname or '').lower()
+    return host in {'localhost', '127.0.0.1', '::1'}
 
 
 class _AuthMiddleware:
@@ -69,6 +120,23 @@ class _OAuthFrontMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope['type'] == 'http':
             path = scope.get('path', '')
+            headers_raw = scope.get('headers', [])
+
+            # Origin validation on MCP routes (DNS-rebind / CSRF protection).
+            # Browsers send Origin on cross-origin requests; non-browser clients
+            # (Claude Desktop, Codex CLI) omit it, which is also allowed.
+            if any(path.startswith(p) for p in self._MCP_PATHS):
+                origin = next(
+                    (v.decode().strip() for k, v in headers_raw if k == b'origin'),
+                    '',
+                )
+                if origin and not _is_origin_allowed(origin):
+                    resp = Response(
+                        content='Origin not allowed',
+                        status_code=403,
+                    )
+                    await resp(scope, receive, send)
+                    return
 
             # OAuth routes → OAuth app
             if any(path.startswith(p) for p in self._OAUTH_PREFIXES):
@@ -77,7 +145,7 @@ class _OAuthFrontMiddleware:
 
             # MCP routes without auth → 401 with WWW-Authenticate
             if any(path.startswith(p) for p in self._MCP_PATHS):
-                headers = dict(scope.get('headers', []))
+                headers = dict(headers_raw)
                 auth = headers.get(b'authorization', b'').decode().strip()
                 if not auth:
                     server_url = os.getenv('IMMOJUMP_MCP_PUBLIC_URL', '').strip()

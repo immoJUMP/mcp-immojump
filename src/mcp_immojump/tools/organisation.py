@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_list(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_get(
         org_id,
         token=None,
@@ -35,7 +35,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_update(
         org_id,
         data,
@@ -54,7 +54,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_members(
         org_id,
         token=None,
@@ -71,7 +71,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_update_member(
         org_id,
         user_id,
@@ -93,7 +93,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_update_member_roles(
         org_id,
         user_id,
@@ -115,7 +115,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def organisation_remove_member(
         org_id,
         user_id,
@@ -133,7 +133,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_invites(
         org_id,
         token=None,
@@ -150,7 +150,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_invite(
         org_id,
         data,
@@ -172,7 +172,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def organisation_cancel_invite(
         org_id,
         invite_id,
@@ -190,7 +190,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_roles(
         org_id,
         token=None,
@@ -207,7 +207,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_create_role(
         org_id,
         data,
@@ -229,7 +229,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_update_role(
         org_id,
         role_id,
@@ -251,7 +251,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def organisation_delete_role(
         org_id,
         role_id,
@@ -269,7 +269,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def organisation_report_design(
         org_id,
         token=None,
@@ -286,7 +286,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def organisation_rebuild_report_design(
         org_id,
         token=None,

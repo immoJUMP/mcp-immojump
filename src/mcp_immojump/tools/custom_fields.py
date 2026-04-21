@@ -1,4 +1,4 @@
-from .._shared import _call_with_client, _ok, _require_dict
+from .._shared import _call_with_client, _ok, _require_dict, destructive_op, read_only, write_op
 
 
 def register(mcp):
@@ -6,7 +6,7 @@ def register(mcp):
     # Definitions
     # ------------------------------------------------------------------
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def custom_fields_definitions_list(
         model,
         token=None,
@@ -29,7 +29,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def custom_fields_definition_create(
         data,
         token=None,
@@ -60,7 +60,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def custom_fields_definition_update(
         definition_id,
         data,
@@ -85,7 +85,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def custom_fields_definition_delete(
         definition_id,
         token=None,
@@ -108,7 +108,7 @@ def register(mcp):
     # Views
     # ------------------------------------------------------------------
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def custom_fields_views_list(
         model,
         token=None,
@@ -130,7 +130,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def custom_fields_view_create(
         data,
         token=None,
@@ -156,7 +156,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def custom_fields_view_update(
         view_id,
         data,
@@ -177,7 +177,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def custom_fields_view_delete(
         view_id,
         token=None,
@@ -198,7 +198,7 @@ def register(mcp):
     # Values
     # ------------------------------------------------------------------
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def custom_fields_values_get(
         model,
         target_id,
@@ -232,7 +232,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def custom_fields_values_set(
         model,
         target_id,

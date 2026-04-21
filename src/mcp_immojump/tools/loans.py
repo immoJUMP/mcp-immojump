@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def loans_list(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def loans_create(
         data,
         token=None,
@@ -55,7 +55,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def loans_update(
         loan_id,
         data,
@@ -78,7 +78,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def loans_delete(
         loan_id,
         token=None,
@@ -95,7 +95,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def loans_list_by_property(
         immobilie_id,
         token=None,
@@ -112,7 +112,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def loans_outstanding(
         loan_ids,
         token=None,

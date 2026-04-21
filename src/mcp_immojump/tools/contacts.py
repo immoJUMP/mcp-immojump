@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_list(
         token=None,
         organisation_id=None,
@@ -26,7 +26,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_get(
         contact_id,
         token=None,
@@ -43,7 +43,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_create(
         data,
         token=None,
@@ -73,7 +73,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_update(
         contact_id,
         data,
@@ -96,7 +96,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_update_status(
         contact_id,
         status_id,
@@ -119,7 +119,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def contacts_delete(
         contact_id,
         token=None,
@@ -136,7 +136,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_count(
         token=None,
         organisation_id=None,
@@ -152,7 +152,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def contacts_bulk_delete(
         contact_ids,
         token=None,
@@ -173,7 +173,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_get_immobilien(
         contact_id,
         token=None,
@@ -190,7 +190,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_get_activities(
         contact_id,
         token=None,
@@ -207,7 +207,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_merge_logs(
         token=None,
         organisation_id=None,
@@ -223,7 +223,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_merge_restore(
         merge_id,
         token=None,
@@ -244,7 +244,7 @@ def register(mcp):
     # Contact import (existing tools, migrated from server.py)
     # ------------------------------------------------------------------
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_import_preview(
         source_type,
         token=None,
@@ -278,7 +278,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_import_start(
         source_type,
         token=None,
@@ -311,7 +311,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_job_status(
         job_id,
         token=None,
@@ -328,7 +328,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def contacts_job_resume(
         job_id,
         token=None,
@@ -345,7 +345,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def contacts_job_cancel(
         job_id,
         token=None,
@@ -362,7 +362,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def contacts_duplicates_preview(
         token=None,
         organisation_id=None,
@@ -393,7 +393,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def contacts_merge_apply(
         primary_id,
         duplicate_ids,
