@@ -8,7 +8,8 @@ _Last updated: «TODO: date at publication»_
 
 ## 1. Who we are
 
-«TODO: legal entity (Rechtsform), address, managing director per §5 TMG»
+**ImmoDigit GmbH** — full §5 TMG details (Sitz, Geschäftsführung, HRB,
+USt-IdNr.) at <https://immojump.de/ng/impressum>.
 
 Contact for privacy questions: `info@immojump.de`
 («TODO: replace with a dedicated privacy alias if required by your DPO»)
@@ -35,7 +36,7 @@ The MCP connector performs no persistent storage of user content of its own.
 
 ## 4. Legal basis (GDPR)
 
-- Art. 6 (1) (b) GDPR — performance of the contract the user holds with «TODO: legal entity».
+- Art. 6 (1) (b) GDPR — performance of the contract the user holds with ImmoDigit GmbH.
 - Art. 6 (1) (f) GDPR — legitimate interest in operating the service securely.
 
 ## 5. Sub-processors
@@ -59,7 +60,9 @@ the OAuth grant; stored tokens are invalidated on the next reload.
 
 ## 7. Security
 
-- Transport: HTTPS only. «TODO: confirm TLS ≥ 1.2 enforced at edge.»
+- Transport: HTTPS only. TLS 1.2 (ECDHE-RSA-AES256-GCM-SHA384) and TLS 1.3
+  (TLS_AES_256_GCM_SHA384) negotiated; TLS 1.0 / 1.1 rejected at the edge
+  (verified 2026-04-21 against `mcp.immojump.de:443`).
 - Origin-Header validation against an allowlist (`claude.ai`, `claude.com`,
   `chatgpt.com`, `chat.openai.com`)
 - OAuth 2.1 with PKCE (S256) and short-lived access tokens

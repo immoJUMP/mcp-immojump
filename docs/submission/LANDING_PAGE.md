@@ -1,6 +1,6 @@
-# Landing Page Copy (TEMPLATE)
+# Landing Page Copy — `https://immojump.de` (TEMPLATE)
 
-> Copy ready for a public page (suggested URL: `https://immojump.de/mcp`).
+> Copy ready for the public landing page at `https://immojump.de`.
 > Verify the Claude connector install URL format before going live;
 > if it changes, fall back to a plain docs link.
 

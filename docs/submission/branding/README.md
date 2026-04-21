@@ -1,14 +1,12 @@
 # Branding assets
 
-Place logos and screenshots here. Anthropic expects:
+| File | Status |
+|------|--------|
+| `logo-512.png` | ✅ committed (512 × 512, dark-navy house with green upward arrow) |
+| `logo.svg` | ❌ pending — Anthropic prefers vector for the form upload |
+| `logo-1024.png` | ❌ optional, recommended for high-DPI |
+| `screenshot-1.png` … `screenshot-3.png` | ❌ pending — claude.ai showing the connector in use, 2560 × 1440 or higher |
 
-- `logo.svg` — vector, preferred for uploads
-- `logo-512.png` — 512 × 512, PNG with transparent background
-- `logo-1024.png` — 1024 × 1024, optional
-- `screenshot-1.png` … `screenshot-3.png` — claude.ai showing the
-  connector in use, 2560 × 1440 or higher
-
-The immoJUMP icon (dark-navy house outline with a green upward arrow) has
-been shared by the vendor; export the source artwork into this folder
-before submitting. Do not check in the rasterised version only — the SVG
-is what the form asks for.
+Once the SVG export is available, drop it next to the PNG and update the
+checklist box in `../SUBMISSION_CHECKLIST.md` §5 from `logo-512.png` to
+`logo.svg`.

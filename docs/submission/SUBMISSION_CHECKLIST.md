@@ -17,10 +17,10 @@ submitted.
 | Connector name | `immoJUMP` |
 | Tagline | CRM, pipelines & property operations for real-estate investors |
 | Category | Productivity / CRM |
-| Vendor | «TODO: legal entity (incl. Rechtsform, Sitz, §5 TMG)» |
+| Vendor | ImmoDigit GmbH (§5 TMG details: <https://immojump.de/ng/impressum>) |
 | Contact e-mail | `info@immojump.de` |
 | Support e-mail | `info@immojump.de` |
-| Public landing page | «TODO: public marketing URL, e.g. https://immojump.de/mcp» |
+| Public landing page | <https://immojump.de> |
 | Server URL (Streamable HTTP) | `https://mcp.immojump.de/mcp` |
 | Server URL (SSE) | `https://mcp.immojump.de/sse` |
 | OAuth metadata URL | `https://mcp.immojump.de/.well-known/oauth-protected-resource` |
@@ -37,7 +37,7 @@ submitted.
 - [x] `X-Frame-Options: DENY` on OAuth authorize page — `src/mcp_immojump/oauth.py`
 - [x] No API keys in prompt — credentials exchanged via OAuth flow
 - [x] Base URL allowlist in client — `ALLOWED_BASE_URLS` in `client.py`
-- [?] HTTPS-only in production, TLS ≥ 1.2 — depends on edge / reverse-proxy config; **verify**
+- [x] HTTPS-only in production, TLS ≥ 1.2 — verified against `mcp.immojump.de` 2026-04-21 (1.0/1.1 rejected, 1.2 + 1.3 accepted)
 - [?] HSTS, CSP, Referrer-Policy at edge — **verify**
 
 ## 3. Tool design (Review Criteria)
@@ -63,7 +63,7 @@ submitted.
 - [ ] Public documentation URL
 - [ ] Privacy Policy URL (template: `PRIVACY_POLICY.md`)
 - [ ] Demo / test account credentials and setup instructions (template: `DEMO_ACCOUNT.md`)
-- [ ] Logo — SVG + PNG at 512 × 512 (place under `docs/submission/branding/`)
+- [x] Logo — `docs/submission/branding/logo-512.png` (512 × 512 PNG); SVG vector still pending
 - [ ] 2-3 short screenshots of the connector in use in claude.ai
 - [ ] Optional: short walk-through video (< 2 min)
 
