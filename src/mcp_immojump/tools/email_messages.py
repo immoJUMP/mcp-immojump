@@ -126,7 +126,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(annotations=write_op(idempotent=True))
     def email_trash(
         message_ids,
         token=None,
