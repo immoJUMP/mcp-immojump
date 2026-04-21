@@ -15,7 +15,46 @@ import contextvars
 import os
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from .client import ImmojumpAPIClient, ImmojumpCredentials
+
+
+# ---------------------------------------------------------------------------
+# MCP Tool annotation helpers (Anthropic Directory review requirement)
+# ---------------------------------------------------------------------------
+# Every tool must carry a `readOnlyHint` or `destructiveHint`.
+# A single tool must map to either safe (GET) or unsafe (POST/PUT/DELETE)
+# semantics — never both. These helpers encode that contract.
+
+def read_only(title: str | None = None) -> ToolAnnotations:
+    """Annotation for tools that only read data (GET endpoints)."""
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=True,
+        openWorldHint=True,
+    )
+
+
+def write_op(title: str | None = None, *, idempotent: bool = False) -> ToolAnnotations:
+    """Annotation for tools that create or mutate data but do not delete."""
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=idempotent,
+        openWorldHint=True,
+    )
+
+
+def destructive_op(title: str | None = None) -> ToolAnnotations:
+    """Annotation for tools that delete or otherwise irreversibly destroy data."""
+    return ToolAnnotations(
+        title=title,
+        readOnlyHint=False,
+        destructiveHint=True,
+        openWorldHint=True,
+    )
 
 
 # ---------------------------------------------------------------------------

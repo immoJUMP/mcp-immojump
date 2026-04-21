@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict
+from .._shared import _call_with_client, _ok, _require_dict, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activities_meta(
         token=None,
         organisation_id=None,
@@ -23,7 +23,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activities_list(
         token=None,
         organisation_id=None,
@@ -57,7 +57,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activities_get(
         activity_id,
         token=None,
@@ -74,7 +74,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activities_create(
         data,
         token=None,
@@ -111,7 +111,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activities_create_for_property(
         immobilie_id,
         data,
@@ -137,7 +137,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activities_update(
         activity_id,
         data,
@@ -161,7 +161,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def activities_delete(
         activity_id,
         token=None,
@@ -178,7 +178,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activities_list_by_property(
         immobilie_id,
         token=None,
@@ -195,7 +195,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activities_statistics(
         token=None,
         organisation_id=None,
@@ -211,7 +211,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activities_structure_description(
         text,
         token=None,
@@ -228,7 +228,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activities_calendar_generate_link(
         token=None,
         organisation_id=None,

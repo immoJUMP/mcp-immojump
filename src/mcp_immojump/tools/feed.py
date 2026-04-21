@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict
+from .._shared import _call_with_client, _ok, _require_dict, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def feed_list(
         token=None,
         organisation_id=None,
@@ -27,7 +27,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def feed_by_context(
         context_type,
         context_id,
@@ -51,7 +51,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_create_post(
         data,
         token=None,
@@ -72,7 +72,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_edit_post(
         event_id,
         data,
@@ -91,7 +91,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_toggle_reaction(
         event_id,
         emoji,
@@ -109,7 +109,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def feed_list_comments(
         event_id,
         token=None,
@@ -126,7 +126,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_add_comment(
         event_id,
         data,
@@ -148,7 +148,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_edit_comment(
         comment_id,
         data,
@@ -167,7 +167,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def feed_delete_comment(
         comment_id,
         token=None,
@@ -184,7 +184,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_comment_object(
         data,
         token=None,
@@ -205,7 +205,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def feed_channels(
         token=None,
         organisation_id=None,
@@ -221,7 +221,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_create_channel(
         name,
         token=None,
@@ -238,7 +238,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def feed_rename_channel(
         channel_id,
         name,
@@ -256,7 +256,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def feed_delete_channel(
         channel_id,
         token=None,

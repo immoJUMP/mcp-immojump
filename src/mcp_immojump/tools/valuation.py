@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok
+from .._shared import _call_with_client, _ok, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def valuation_request(
         immobilie_id,
         token=None,
@@ -26,7 +26,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def valuation_history(
         immobilie_id,
         token=None,
@@ -43,7 +43,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def valuation_providers(
         token=None,
         organisation_id=None,
