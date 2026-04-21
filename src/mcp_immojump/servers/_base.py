@@ -19,19 +19,22 @@ from ..oauth import create_oauth_routes, decode_access_token
 # Origin header validation (DNS-rebind protection)
 # ---------------------------------------------------------------------------
 # Default allowlist covers the official MCP clients that consume this server
-# (Claude.ai, ChatGPT, Claude Desktop). Operators can extend via the
+# (Claude.ai, ChatGPT). Operators can extend via the
 # IMMOJUMP_MCP_ALLOWED_ORIGINS env var (comma-separated full origins, e.g.
 # "https://claude.ai,https://example.com").
+#
+# Non-browser clients (Claude Desktop, Codex CLI) omit Origin entirely; we
+# treat an empty Origin as "not a browser" and let it through — the bearer
+# token is the authentication boundary in that case.
 
 _DEFAULT_ALLOWED_ORIGINS: frozenset[str] = frozenset({
     'https://claude.ai',
     'https://claude.com',
     'https://chat.openai.com',
     'https://chatgpt.com',
-    # Local dev clients (loopback only)
-    'http://localhost',
-    'http://127.0.0.1',
 })
+
+_LOOPBACK_HOSTS: frozenset[str] = frozenset({'localhost', '127.0.0.1', '::1'})
 
 
 def _allowed_origins() -> frozenset[str]:
@@ -45,24 +48,29 @@ def _allowed_origins() -> frozenset[str]:
 def _is_origin_allowed(origin: str) -> bool:
     """Return True if the Origin header matches an allowed scheme+host(+port).
 
-    Matches either a full origin (https://host) or a loopback host prefix so
-    that dev clients bound to arbitrary ports are allowed without config.
+    An Origin per RFC 6454 is ``scheme://host[:port]`` with no path.  We
+    reject anything containing a path component so that loose matches like
+    ``http://localhost/evil`` cannot slip through the loopback fallback.
+    Loopback hosts are accepted on both http and https so local dev servers
+    behind mkcert/Caddy also work.
     """
     if not origin:
         return False
-    origin = origin.strip().rstrip('/')
-    allowed = _allowed_origins()
-    if origin in allowed:
+    origin = origin.strip()
+    if origin in _allowed_origins():
         return True
-    # Loopback match ignoring port (e.g. http://localhost:54321)
     try:
         parsed = urlparse(origin)
     except ValueError:
         return False
-    if parsed.scheme != 'http':
+    if parsed.scheme not in {'http', 'https'}:
+        return False
+    if parsed.path not in ('', '/'):
+        return False
+    if parsed.query or parsed.fragment:
         return False
     host = (parsed.hostname or '').lower()
-    return host in {'localhost', '127.0.0.1', '::1'}
+    return host in _LOOPBACK_HOSTS
 
 
 class _AuthMiddleware:

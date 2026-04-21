@@ -15,6 +15,7 @@ from mcp_immojump.servers._base import _allowed_origins, _is_origin_allowed
     'http://localhost',
     'http://localhost:8000',
     'http://127.0.0.1:54321',
+    'https://localhost:8443',  # dev HTTPS via mkcert/Caddy
 ])
 def test_allowed_origins_accepted(origin: str) -> None:
     assert _is_origin_allowed(origin)
@@ -25,18 +26,19 @@ def test_allowed_origins_accepted(origin: str) -> None:
     'http://attacker.test',
     'https://claude.ai.evil.com',
     'http://10.0.0.5',
-    # http variants of public origins must be rejected
+    # Http variants of public origins must be rejected
     'http://claude.ai',
     'http://chatgpt.com',
+    # Origins with path / query / fragment are not valid per RFC 6454
+    'http://localhost/evil',
+    'http://localhost:8000/path',
+    'http://localhost?x=1',
+    'http://localhost#frag',
+    # Empty string is not a valid origin
+    '',
 ])
 def test_disallowed_origins_rejected(origin: str) -> None:
     assert not _is_origin_allowed(origin)
-
-
-def test_empty_origin_rejected_by_is_allowed() -> None:
-    # _is_origin_allowed returns False for empty; the middleware treats
-    # empty Origin as "no browser" and lets it through.
-    assert not _is_origin_allowed('')
 
 
 def test_env_extends_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -53,3 +55,12 @@ def test_env_allowlist_empty_by_default(monkeypatch: pytest.MonkeyPatch) -> None
     allowed = _allowed_origins()
     assert 'https://claude.ai' in allowed
     assert 'https://example.org' not in allowed
+
+
+def test_default_allowlist_has_no_dead_entries() -> None:
+    """Guard against re-introducing origins that browsers never actually send."""
+    from mcp_immojump.servers._base import _DEFAULT_ALLOWED_ORIGINS
+    # Portless loopback entries are unreachable by real browsers; the
+    # loopback fallback in _is_origin_allowed handles those cases.
+    assert 'http://localhost' not in _DEFAULT_ALLOWED_ORIGINS
+    assert 'http://127.0.0.1' not in _DEFAULT_ALLOWED_ORIGINS

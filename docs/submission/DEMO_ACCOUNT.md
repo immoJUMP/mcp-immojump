@@ -1,58 +1,52 @@
-# Demo / Test Account Setup — for Anthropic Review
+# Demo / Test Account Setup — for Anthropic Review (TEMPLATE)
 
-The Anthropic review team needs a live account with sample data to validate
-the connector. Provide the information below in the submission form (Anthropic
-treats it as confidential).
+> **TEMPLATE — every `«TODO»` is a vendor decision that must be filled in
+> before submitting.** Do not hand this document to Anthropic until the
+> seed script, account, and contacts actually exist.
+
+The reviewer needs a live account with sample data. Provide the following
+in the submission form (Anthropic treats it confidentially).
 
 ## 1. Account
 
 | Field | Value |
 |------|------|
-| Platform URL | <https://beta.immojump.de> |
-| Login e-mail | `anthropic-review@immojump.de` *(create before submitting)* |
-| Password | *stored in 1Password vault `connectors-review`* |
-| Organisation name | `Anthropic Review Sandbox` |
-| Organisation ID | *fill in after creation — shown in URL, `/o/<id>/...`* |
-| API token | *generate via Einstellungen → API-Zugang → Token generieren* |
+| Platform URL | «TODO: public base URL, e.g. https://beta.immojump.de» |
+| Login e-mail | «TODO: create a dedicated review account» |
+| Password | «TODO: store in your password manager; share via form field only» |
+| Organisation name | «TODO: e.g. Anthropic Review Sandbox» |
+| Organisation ID | «TODO: fill in after creation (visible in URL /o/<id>/…)» |
+| API token | «TODO: generate via Einstellungen → API-Zugang → Token generieren» |
 
-Delete or disable the account 30 days after the connector goes live.
+Rotate or disable the account after the connector goes live.
 
 ## 2. Seed data
 
-Run the seed script inside the sandbox organisation to guarantee a reviewable
-workspace:
+The backend repo «TODO: link» should expose a seeding command that
+populates the sandbox organisation with reviewable demo data. If no such
+command exists yet, create one covering at minimum:
 
-```bash
-# From the immojump backend repo
-ENV=beta \
-ORG_ID=<anthropic-review-org-id> \
-python manage.py seed_demo_workspace --profile=mcp-review
-```
+- Contacts with a variety of tags and statuses
+- Properties with units, documents, milestones
+- Pipelines (`Ankauf`, `Vermietung`, `Renovation`) with several statuses each
+- Activities (past & future) and activity templates
+- Deals in different pipeline stages
+- Tickets with comments
+- Custom-field definitions and views
+- Loans
+- E-mail threads (fixture mailbox)
 
-The `mcp-review` profile creates:
-
-- 50 contacts (mix of investor / seller / maker personas)
-- 10 properties with units, documents, and milestones
-- 3 pipelines (`Ankauf`, `Vermietung`, `Renovation`) with 5–7 statuses each
-- 20 activities (past & future) and 5 activity templates
-- 4 deals in different pipeline stages
-- 6 open tickets + comments
-- 3 custom-field definitions and views
-- 5 loan records
-- 10 e-mail threads (imported from a fixture mailbox)
-
-Re-running the script wipes and reseeds the organisation — safe for test.
+«TODO: document the exact command and the data volumes it produces.»
 
 ## 3. Connector setup flow (reviewer instructions)
 
 1. In claude.ai → Settings → Connectors → Add connector.
-2. Paste `https://mcp.immojump.de/mcp` (Streamable HTTP) or
-   `https://mcp.immojump.de/sse` (SSE, Claude Desktop).
+2. Paste `«TODO: Streamable HTTP URL, e.g. https://mcp.immojump.de/mcp»`
+   or the SSE URL for Claude Desktop.
 3. Complete the OAuth consent screen:
    - API token: *from §1*
    - Organisation ID: *from §1*
-4. Claude Desktop / claude.ai stores the bearer and no further prompts
-   ask for credentials.
+4. The client stores the bearer token; no further prompts ask for credentials.
 
 ## 4. Golden-path prompts to try
 
@@ -67,15 +61,14 @@ Re-running the script wipes and reseeds the organisation — safe for test.
 
 ## 5. Edge cases to validate
 
-- Cancel an import job (`contacts_job_cancel`) — must not destroy
-  already-committed rows.
+- Cancel an import job (`contacts_job_cancel`) — already-committed rows
+  must survive.
 - Dry-run outcome replacement on an activity template (`dry_run=true`) —
-  must return a diff and persist nothing.
-- Concurrency guard (`if_updated_at`) — fake a mismatch and observe `409`.
-- Origin header rejection — curl `-H "Origin: https://evil.example.com"` to
-  `/mcp` and expect `403`.
+  returns a diff, persists nothing.
+- Concurrency guard (`if_updated_at`) — mismatch returns `409`.
+- Origin header rejection — a request with `Origin: https://evil.example.com`
+  to `/mcp` must return `403`.
 
 ## 6. Support during review
 
-Live dev contact: `review@immojump.de` (SLA: next business day, Mon–Fri
-09:00–18:00 CET). Escalation: CTO on `cto@immojump.de`.
+«TODO: name a live dev contact, working hours, and an escalation path.»

@@ -21,14 +21,21 @@ from .client import ImmojumpAPIClient, ImmojumpCredentials
 
 
 # ---------------------------------------------------------------------------
-# MCP Tool annotation helpers (Anthropic Directory review requirement)
+# MCP Tool annotation helpers
 # ---------------------------------------------------------------------------
-# Every tool must carry a `readOnlyHint` or `destructiveHint`.
-# A single tool must map to either safe (GET) or unsafe (POST/PUT/DELETE)
-# semantics — never both. These helpers encode that contract.
+# The MCP spec's ToolAnnotations carry hints that clients use to build
+# confirmation prompts and safety policies.  Each tool wraps a single HTTP
+# verb on the ImmoJUMP backend, so classification is one of three cases:
+#
+# - read_only:     safe GET-like operations, no state change
+# - write_op:      creates / updates, no deletion of existing records
+# - destructive_op: deletes or otherwise irreversibly removes data
+#
+# idempotentHint is left unset by default because HTTP verb alone does not
+# imply semantic idempotence — callers who know better should pass it in.
 
 def read_only(title: str | None = None) -> ToolAnnotations:
-    """Annotation for tools that only read data (GET endpoints)."""
+    """Annotation for tools that only read data."""
     return ToolAnnotations(
         title=title,
         readOnlyHint=True,
@@ -36,7 +43,11 @@ def read_only(title: str | None = None) -> ToolAnnotations:
     )
 
 
-def write_op(title: str | None = None, *, idempotent: bool = False) -> ToolAnnotations:
+def write_op(
+    title: str | None = None,
+    *,
+    idempotent: bool | None = None,
+) -> ToolAnnotations:
     """Annotation for tools that create or mutate data but do not delete."""
     return ToolAnnotations(
         title=title,
@@ -47,12 +58,17 @@ def write_op(title: str | None = None, *, idempotent: bool = False) -> ToolAnnot
     )
 
 
-def destructive_op(title: str | None = None) -> ToolAnnotations:
+def destructive_op(
+    title: str | None = None,
+    *,
+    idempotent: bool | None = None,
+) -> ToolAnnotations:
     """Annotation for tools that delete or otherwise irreversibly destroy data."""
     return ToolAnnotations(
         title=title,
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=idempotent,
         openWorldHint=True,
     )
 
