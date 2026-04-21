@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def tags_list(
         token=None,
         organisation_id=None,
@@ -22,7 +22,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def tags_create(
         data,
         token=None,
@@ -45,7 +45,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def tags_update(
         tag_id,
         data,
@@ -64,7 +64,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def tags_delete(
         tag_id,
         token=None,
@@ -81,7 +81,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def tags_get_entity(
         entity_type,
         entity_id,
@@ -103,7 +103,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def tags_update_entity(
         entity_type,
         entity_id,

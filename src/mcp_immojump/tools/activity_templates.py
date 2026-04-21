@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activity_templates_list(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activity_templates_recurring_list(
         token=None,
         organisation_id=None,
@@ -34,7 +34,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activity_templates_by_status(
         status_id,
         token=None,
@@ -55,7 +55,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def activity_template_get(
         template_id,
         token=None,
@@ -72,7 +72,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activity_template_create(
         data,
         token=None,
@@ -112,7 +112,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activity_template_update(
         template_id,
         data,
@@ -137,7 +137,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def activity_template_delete(
         template_id,
         token=None,
@@ -154,7 +154,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def activity_templates_batch_move(
         template_ids,
         target_status_id,

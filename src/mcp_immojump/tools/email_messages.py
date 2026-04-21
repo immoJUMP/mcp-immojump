@@ -1,8 +1,8 @@
-from .._shared import _call_with_client, _ok, _require_list
+from .._shared import _call_with_client, _ok, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_list(
         token=None,
         organisation_id=None,
@@ -28,7 +28,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_get(
         message_id,
         token=None,
@@ -45,7 +45,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_thread(
         thread_id,
         token=None,
@@ -62,7 +62,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_mark_read(
         message_ids,
         token=None,
@@ -85,7 +85,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_mark_starred(
         message_ids,
         token=None,
@@ -108,7 +108,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_archive(
         message_ids,
         token=None,
@@ -126,7 +126,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def email_trash(
         message_ids,
         token=None,
@@ -144,7 +144,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_move(
         message_ids,
         folder,
@@ -163,7 +163,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_folders(
         token=None,
         organisation_id=None,
@@ -179,7 +179,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_create_folder(
         name,
         token=None,
@@ -196,7 +196,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_rename_folder(
         folder_id,
         name,
@@ -214,7 +214,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=destructive_op())
     def email_delete_folder(
         folder_id,
         token=None,
@@ -231,7 +231,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_search(
         query,
         token=None,
@@ -248,7 +248,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=read_only())
     def email_by_contact(
         contact_id,
         token=None,
@@ -265,7 +265,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool()
+    @mcp.tool(annotations=write_op())
     def email_sync(
         token=None,
         organisation_id=None,
