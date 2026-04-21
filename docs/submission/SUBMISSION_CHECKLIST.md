@@ -1,32 +1,31 @@
-# Anthropic Software Directory — Submission Checklist (TEMPLATE)
+# Anthropic Software Directory — Submission Checklist
 
-> Every box below marked `[?]` is a claim you need to **verify yourself**
-> before submitting at <https://clau.de/mcp-directory-submission>. Claude
-> Code cannot verify deployment specifics (TLS versions, proxy config,
-> hosting provider). Boxes marked `[x]` are code-level facts verified in
-> this repo.
+> Boxes marked `[x]` are code-level facts verified in this repo. Boxes
+> marked `[?]` require runtime / deployment verification. Fields still
+> shown as `«TODO»` in §1 must be filled in by the vendor before the
+> form is submitted at <https://clau.de/mcp-directory-submission>.
 
 Scope: remote MCP server. The `.mcpb` desktop bundle is **not** being
 submitted.
 
 ---
 
-## 1. Basic metadata (fill in)
+## 1. Basic metadata
 
 | Field | Value |
 |------|------|
 | Connector name | `immoJUMP` |
 | Tagline | CRM, pipelines & property operations for real-estate investors |
 | Category | Productivity / CRM |
-| Vendor | «TODO: legal entity» |
-| Contact e-mail | «TODO» |
-| Support e-mail | «TODO» |
-| Public landing page | «TODO: stub in `LANDING_PAGE.md`» |
-| Server URL (Streamable HTTP) | «TODO, e.g. https://mcp.immojump.de/mcp» |
-| Server URL (SSE) | «TODO, e.g. https://mcp.immojump.de/sse» |
-| OAuth metadata URL | «TODO»`/.well-known/oauth-protected-resource` |
-| Privacy Policy URL | «TODO: stub in `PRIVACY_POLICY.md`» |
-| Terms of Service URL | «TODO» |
+| Vendor | «TODO: legal entity (incl. Rechtsform, Sitz, §5 TMG)» |
+| Contact e-mail | `info@immojump.de` |
+| Support e-mail | `info@immojump.de` |
+| Public landing page | «TODO: public marketing URL, e.g. https://immojump.de/mcp» |
+| Server URL (Streamable HTTP) | `https://mcp.immojump.de/mcp` |
+| Server URL (SSE) | `https://mcp.immojump.de/sse` |
+| OAuth metadata URL | `https://mcp.immojump.de/.well-known/oauth-protected-resource` |
+| Privacy Policy URL | «TODO: public URL, e.g. https://immojump.de/legal/privacy-mcp» |
+| Terms of Service URL | «TODO: public URL» |
 
 ## 2. Auth & transport (Review Criteria)
 
@@ -64,7 +63,7 @@ submitted.
 - [ ] Public documentation URL
 - [ ] Privacy Policy URL (template: `PRIVACY_POLICY.md`)
 - [ ] Demo / test account credentials and setup instructions (template: `DEMO_ACCOUNT.md`)
-- [ ] Logo assets — SVG + PNG at 512 × 512
+- [ ] Logo — SVG + PNG at 512 × 512 (place under `docs/submission/branding/`)
 - [ ] 2-3 short screenshots of the connector in use in claude.ai
 - [ ] Optional: short walk-through video (< 2 min)
 
@@ -75,8 +74,12 @@ submitted.
 PYTHONPATH=src pytest -q
 # lint
 PYTHONPATH=src ruff check src tests
-# live smoke test against your deployment
-npx @modelcontextprotocol/inspector «TODO: live server URL»
+# live smoke test against production
+npx @modelcontextprotocol/inspector https://mcp.immojump.de/mcp
+# Origin rejection sanity check
+curl -i -H "Origin: https://evil.example.com" https://mcp.immojump.de/mcp   # expect 403
+# Clickjack-defence sanity check
+curl -sI "https://mcp.immojump.de/oauth/authorize?client_id=x&redirect_uri=https://claude.ai/cb&state=s&code_challenge=c&code_challenge_method=S256" | grep -i x-frame-options   # expect "DENY"
 ```
 
 Escalation if review stalls: `mcp-review@anthropic.com`.

@@ -1,8 +1,8 @@
 # Demo / Test Account Setup — for Anthropic Review (TEMPLATE)
 
-> **TEMPLATE — every `«TODO»` is a vendor decision that must be filled in
-> before submitting.** Do not hand this document to Anthropic until the
-> seed script, account, and contacts actually exist.
+> Every `«TODO»` is a vendor decision that must be filled in before the
+> submission form is opened. Do not hand this document to Anthropic until
+> the seed script, account, and contacts actually exist.
 
 The reviewer needs a live account with sample data. Provide the following
 in the submission form (Anthropic treats it confidentially).
@@ -11,20 +11,21 @@ in the submission form (Anthropic treats it confidentially).
 
 | Field | Value |
 |------|------|
-| Platform URL | «TODO: public base URL, e.g. https://beta.immojump.de» |
+| Platform URL | `https://beta.immojump.de` (staging) — or `https://immojump.de` (prod) |
+| MCP server URL | `https://mcp.immojump.de/mcp` (Streamable HTTP) / `https://mcp.immojump.de/sse` (SSE) |
 | Login e-mail | «TODO: create a dedicated review account» |
-| Password | «TODO: store in your password manager; share via form field only» |
+| Password | «TODO: store in your password manager; share only via the submission form» |
 | Organisation name | «TODO: e.g. Anthropic Review Sandbox» |
-| Organisation ID | «TODO: fill in after creation (visible in URL /o/<id>/…)» |
+| Organisation ID | «TODO: fill in after creation (visible in URL `/o/<id>/…`)» |
 | API token | «TODO: generate via Einstellungen → API-Zugang → Token generieren» |
 
 Rotate or disable the account after the connector goes live.
 
 ## 2. Seed data
 
-The backend repo «TODO: link» should expose a seeding command that
-populates the sandbox organisation with reviewable demo data. If no such
-command exists yet, create one covering at minimum:
+The backend repo should expose a seeding command that populates the
+sandbox organisation with reviewable demo data. If no such command exists
+yet, create one covering at minimum:
 
 - Contacts with a variety of tags and statuses
 - Properties with units, documents, milestones
@@ -36,13 +37,14 @@ command exists yet, create one covering at minimum:
 - Loans
 - E-mail threads (fixture mailbox)
 
-«TODO: document the exact command and the data volumes it produces.»
+«TODO: document the exact command (repo + invocation) and the resulting
+data volumes.»
 
 ## 3. Connector setup flow (reviewer instructions)
 
 1. In claude.ai → Settings → Connectors → Add connector.
-2. Paste `«TODO: Streamable HTTP URL, e.g. https://mcp.immojump.de/mcp»`
-   or the SSE URL for Claude Desktop.
+2. Paste `https://mcp.immojump.de/mcp` (Streamable HTTP) or
+   `https://mcp.immojump.de/sse` (SSE) for Claude Desktop.
 3. Complete the OAuth consent screen:
    - API token: *from §1*
    - Organisation ID: *from §1*
@@ -71,4 +73,7 @@ command exists yet, create one covering at minimum:
 
 ## 6. Support during review
 
-«TODO: name a live dev contact, working hours, and an escalation path.»
+Primary contact: `info@immojump.de`
+
+«TODO: optional — name a live dev contact, working hours, and an
+escalation path for Anthropic.»

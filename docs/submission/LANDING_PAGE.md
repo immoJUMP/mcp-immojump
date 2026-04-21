@@ -1,8 +1,8 @@
-# Landing Page Copy — `«TODO: public URL»/mcp` (TEMPLATE)
+# Landing Page Copy (TEMPLATE)
 
-> **TEMPLATE.** Replace every `«TODO»` before publishing. Verify that the
-> "Install in Claude" deep-link format currently used by claude.ai matches
-> the `href` below; if not, fall back to a plain documentation link.
+> Copy ready for a public page (suggested URL: `https://immojump.de/mcp`).
+> Verify the Claude connector install URL format before going live;
+> if it changes, fall back to a plain docs link.
 
 ---
 
@@ -12,7 +12,7 @@
 Dein CRM, deine Pipelines und dein Immobilien-Portfolio — direkt im Chat.
 
 *Primary CTA:* „In Claude.ai installieren"
-→ «TODO: verified Claude connector install URL, or fall back to the docs page»
+→ «TODO: verified Claude connector install URL; pass `https://mcp.immojump.de/mcp` as the server URL»
 
 *Secondary CTA:* „Dokumentation ansehen"
 → «TODO: link to help-center article»
@@ -36,15 +36,17 @@ Insgesamt 170 Tools, aufgeteilt in drei Paketen: `standard` (Investor-Kern,
 - OAuth 2.1 (PKCE) — der API-Token verlässt den Browser nicht
 - Origin-Header-Validierung gegen Claude.ai, ChatGPT und Loopback-Clients
 - First-Party-API: keine Weitergabe an Dritte außer dem gewählten MCP-Client
-- «TODO: GDPR / hosting statement, only once verified»
+- Hosting in Deutschland bei Hetzner Online GmbH, DSGVO-konform
 - Security-Policy: siehe `SECURITY.md`
 
 ## So richtest du es ein
 
 1. In claude.ai → Einstellungen → Connectors → Verbindung hinzufügen.
-2. «TODO: öffentliche Server-URL» einfügen.
+2. `https://mcp.immojump.de/mcp` einfügen.
 3. API-Token + Organisation-ID eingeben (einmalig).
 4. Teste mit *„Zeig mir alle Kontakte mit Tag Investor."*
+
+Für Claude Desktop verwende stattdessen `https://mcp.immojump.de/sse`.
 
 ## FAQ
 
@@ -57,7 +59,7 @@ Server speichert keine Tokens über die Session hinaus.
 **Kann ich den Connector selbst hosten?** Ja, das Repository ist MIT-lizenziert.
 Siehe `Dockerfile` und `README.md`.
 
-**Support:** «TODO: contact e-mail» · [GitHub Issues](https://github.com/immoJUMP/mcp-immojump/issues)
+**Support:** `info@immojump.de` · [GitHub Issues](https://github.com/immoJUMP/mcp-immojump/issues)
 
 ---
 
