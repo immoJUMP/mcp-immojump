@@ -39,6 +39,16 @@ _registered_clients: dict[str, dict[str, Any]] = {}
 # Cleanup stale codes every request (simple, no background thread needed)
 _CODE_TTL = 300  # 5 minutes
 
+# Security headers applied to every HTML response rendered by this module.
+# The authorize page accepts a user-entered API token, so it must never be
+# embeddable (clickjacking) and must disable referrer leakage.
+_LOGIN_SECURITY_HEADERS = {
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+}
+
 
 def _cleanup_codes() -> None:
     now = time.time()
@@ -136,9 +146,17 @@ async def authorize(request: Request) -> Response:
         scope = request.query_params.get('scope', '')
 
         if not redirect_uri:
-            return HTMLResponse('<h1>Fehler: redirect_uri fehlt</h1>', status_code=400)
+            return HTMLResponse(
+                '<h1>Fehler: redirect_uri fehlt</h1>',
+                status_code=400,
+                headers=_LOGIN_SECURITY_HEADERS,
+            )
         if code_challenge_method and code_challenge_method != 'S256':
-            return HTMLResponse('<h1>Fehler: Nur S256 PKCE wird unterstützt</h1>', status_code=400)
+            return HTMLResponse(
+                '<h1>Fehler: Nur S256 PKCE wird unterstützt</h1>',
+                status_code=400,
+                headers=_LOGIN_SECURITY_HEADERS,
+            )
 
         # Render login form
         form_html = f"""<!DOCTYPE html>
@@ -197,7 +215,7 @@ async def authorize(request: Request) -> Response:
     </div>
 </body>
 </html>"""
-        return HTMLResponse(form_html)
+        return HTMLResponse(form_html, headers=_LOGIN_SECURITY_HEADERS)
 
     # POST: process form submission
     form = await request.form()
@@ -209,15 +227,27 @@ async def authorize(request: Request) -> Response:
     client_id = str(form.get('client_id', '')).strip()
 
     if not api_token or not org_id:
-        return HTMLResponse('<h1>Fehler: Token und Organisation-ID sind erforderlich</h1>', status_code=400)
+        return HTMLResponse(
+            '<h1>Fehler: Token und Organisation-ID sind erforderlich</h1>',
+            status_code=400,
+            headers=_LOGIN_SECURITY_HEADERS,
+        )
     if not redirect_uri:
-        return HTMLResponse('<h1>Fehler: redirect_uri fehlt</h1>', status_code=400)
+        return HTMLResponse(
+            '<h1>Fehler: redirect_uri fehlt</h1>',
+            status_code=400,
+            headers=_LOGIN_SECURITY_HEADERS,
+        )
 
     # Validate redirect_uri against registered client (if DCR was used)
     if client_id and client_id in _registered_clients:
         registered = _registered_clients[client_id]
         if registered['redirect_uris'] and redirect_uri not in registered['redirect_uris']:
-            return HTMLResponse('<h1>Fehler: redirect_uri stimmt nicht mit der Registrierung überein</h1>', status_code=400)
+            return HTMLResponse(
+                '<h1>Fehler: redirect_uri stimmt nicht mit der Registrierung überein</h1>',
+                status_code=400,
+                headers=_LOGIN_SECURITY_HEADERS,
+            )
 
     # Validate token against immoJUMP API (best-effort)
     import httpx
@@ -234,6 +264,7 @@ async def authorize(request: Request) -> Response:
                 '<h1>Ungültiger Token</h1><p>Bitte prüfe deinen API-Token und versuche es erneut.</p>'
                 '<p><a href="javascript:history.back()">Zurück</a></p>',
                 status_code=400,
+                headers=_LOGIN_SECURITY_HEADERS,
             )
     except (httpx.ConnectError, httpx.TimeoutException, OSError):
         pass  # Backend unreachable — skip validation, will fail on actual tool calls
