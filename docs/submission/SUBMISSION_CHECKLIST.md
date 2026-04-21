@@ -5,8 +5,11 @@
 > shown as `«TODO»` in §1 must be filled in by the vendor before the
 > form is submitted at <https://clau.de/mcp-directory-submission>.
 
-Scope: remote MCP server. The `.mcpb` desktop bundle is **not** being
-submitted.
+Scope: remote MCP server, **Standard tier** (87 tools — Investor-Kern:
+Immobilien, Kontakte, Aktivitäten, Pipelines, Statuses, Dokumente, Tags,
+Activity-Templates, Units). The Profi (129 tools) and Full (170 tools)
+variants are not part of this submission. The `.mcpb` desktop bundle is
+**not** being submitted.
 
 ---
 

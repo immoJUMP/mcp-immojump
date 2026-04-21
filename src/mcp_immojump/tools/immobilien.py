@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, destructive_op, rea
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List properties', annotations=read_only())
     def immobilien_list(
         token=None,
         organisation_id=None,
@@ -23,7 +23,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Search properties', annotations=read_only())
     def immobilien_search(
         token=None,
         organisation_id=None,
@@ -55,7 +55,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Count properties', annotations=read_only())
     def immobilien_count(
         token=None,
         organisation_id=None,
@@ -71,7 +71,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get property', annotations=read_only())
     def immobilien_get(
         immobilie_id,
         token=None,
@@ -91,7 +91,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create property', annotations=write_op())
     def immobilien_create(
         data,
         token=None,
@@ -114,7 +114,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update property', annotations=write_op())
     def immobilien_update(
         immobilie_id,
         data,
@@ -136,7 +136,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Patch property', annotations=write_op())
     def immobilien_patch(
         immobilie_id,
         data,
@@ -159,7 +159,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete property', annotations=destructive_op())
     def immobilien_delete(
         immobilie_id,
         token=None,
@@ -176,7 +176,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Duplicate property', annotations=write_op())
     def immobilien_duplicate(
         immobilie_id,
         token=None,
@@ -196,7 +196,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Transfer property to another organisation', annotations=write_op())
     def immobilien_transfer(
         immobilie_id,
         target_organisation_id,
@@ -217,7 +217,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List contacts for property', annotations=read_only())
     def immobilien_contacts(
         immobilie_id,
         token=None,
@@ -234,7 +234,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Split property into units', annotations=write_op())
     def immobilien_split_units(
         immobilie_id,
         token=None,

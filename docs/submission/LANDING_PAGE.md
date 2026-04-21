@@ -27,9 +27,11 @@ Dein CRM, deine Pipelines und dein Immobilien-Portfolio — direkt im Chat.
 - Dokumente listen, analysieren und markieren
 - Loans, Tickets, Deals, Custom Fields, E-Mail, Feed, Org-Management
 
-Insgesamt 170 Tools, aufgeteilt in drei Paketen: `standard` (Investor-Kern,
-87 Tools), `profi` (plus Deals/Tickets/Custom Fields, 129 Tools) und `full`
-(alle 170 Tools).
+Insgesamt 87 Tools in der Standard-Variante (Investor-Kern: Kontakte,
+Pipelines, Immobilien, Units, Aktivitäten, Dokumente, Tags, Status,
+Activity-Templates). Weitere Varianten mit zusätzlichen Domains (Deals,
+Tickets, Milestones, Custom Fields, E-Mail, Feed, Loans, Valuation)
+existieren auf Anfrage.
 
 ## Sicherheit
 

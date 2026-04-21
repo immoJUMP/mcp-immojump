@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list, dest
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List activity templates', annotations=read_only())
     def activity_templates_list(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List recurring activity templates', annotations=read_only())
     def activity_templates_recurring_list(
         token=None,
         organisation_id=None,
@@ -34,7 +34,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List activity templates by pipeline status', annotations=read_only())
     def activity_templates_by_status(
         status_id,
         token=None,
@@ -55,7 +55,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get activity template', annotations=read_only())
     def activity_template_get(
         template_id,
         token=None,
@@ -72,7 +72,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create activity template', annotations=write_op())
     def activity_template_create(
         data,
         token=None,
@@ -112,7 +112,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update activity template', annotations=write_op())
     def activity_template_update(
         template_id,
         data,
@@ -137,7 +137,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete activity template', annotations=destructive_op())
     def activity_template_delete(
         template_id,
         token=None,
@@ -154,7 +154,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Move activity templates between statuses', annotations=write_op())
     def activity_templates_batch_move(
         template_ids,
         target_status_id,

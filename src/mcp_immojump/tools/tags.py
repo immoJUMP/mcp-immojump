@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, _require_list, dest
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List tags', annotations=read_only())
     def tags_list(
         token=None,
         organisation_id=None,
@@ -22,7 +22,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create tag', annotations=write_op())
     def tags_create(
         data,
         token=None,
@@ -45,7 +45,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update tag', annotations=write_op())
     def tags_update(
         tag_id,
         data,
@@ -64,7 +64,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete tag', annotations=destructive_op())
     def tags_delete(
         tag_id,
         token=None,
@@ -81,7 +81,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List tags for entity', annotations=read_only())
     def tags_get_entity(
         entity_type,
         entity_id,
@@ -103,7 +103,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Set tags on entity', annotations=write_op())
     def tags_update_entity(
         entity_type,
         entity_id,

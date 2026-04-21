@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, destructive_op, rea
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List ticket statuses', annotations=read_only())
     def tickets_statuses(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List tickets', annotations=read_only())
     def tickets_list(
         token=None,
         organisation_id=None,
@@ -47,7 +47,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get ticket', annotations=read_only())
     def tickets_get(
         ticket_id,
         token=None,
@@ -64,7 +64,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create ticket', annotations=write_op())
     def tickets_create(
         data,
         token=None,
@@ -99,7 +99,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update ticket', annotations=write_op())
     def tickets_update(
         ticket_id,
         data,
@@ -122,7 +122,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete ticket', annotations=destructive_op())
     def tickets_delete(
         ticket_id,
         token=None,
@@ -139,7 +139,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Change ticket status', annotations=write_op())
     def tickets_change_status(
         ticket_id,
         status_id,
@@ -161,7 +161,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List ticket comments', annotations=read_only())
     def tickets_list_comments(
         ticket_id,
         token=None,
@@ -178,7 +178,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Add ticket comment', annotations=write_op())
     def tickets_add_comment(
         ticket_id,
         data,

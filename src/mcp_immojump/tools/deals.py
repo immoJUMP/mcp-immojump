@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List deals', annotations=read_only())
     def deals_list(
         token=None,
         organisation_id=None,
@@ -34,7 +34,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get deal', annotations=read_only())
     def deals_get(
         deal_id,
         token=None,
@@ -51,7 +51,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create deal', annotations=write_op())
     def deals_create(
         data,
         token=None,
@@ -86,7 +86,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update deal', annotations=write_op())
     def deals_update(
         deal_id,
         data,

@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, read_only
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Test connection', annotations=read_only())
     def connection_test(
         token=None,
         organisation_id=None,

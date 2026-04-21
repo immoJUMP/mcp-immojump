@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, destructive_op, rea
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List units for property', annotations=read_only())
     def units_list(
         immobilie_id,
         token=None,
@@ -19,7 +19,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Count units', annotations=read_only())
     def units_count(
         token=None,
         organisation_id=None,
@@ -35,7 +35,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create unit', annotations=write_op())
     def units_create(
         immobilie_id,
         data,
@@ -60,7 +60,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update unit', annotations=write_op())
     def units_update(
         unit_id,
         data,
@@ -79,7 +79,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete unit', annotations=destructive_op())
     def units_delete(
         unit_id,
         token=None,
