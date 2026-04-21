@@ -6,7 +6,7 @@ def register(mcp):
     # Definitions
     # ------------------------------------------------------------------
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List custom-field definitions', annotations=read_only())
     def custom_fields_definitions_list(
         model,
         token=None,
@@ -29,7 +29,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create custom-field definition', annotations=write_op())
     def custom_fields_definition_create(
         data,
         token=None,
@@ -60,7 +60,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update custom-field definition', annotations=write_op())
     def custom_fields_definition_update(
         definition_id,
         data,
@@ -85,7 +85,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete custom-field definition', annotations=destructive_op())
     def custom_fields_definition_delete(
         definition_id,
         token=None,
@@ -108,7 +108,7 @@ def register(mcp):
     # Views
     # ------------------------------------------------------------------
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List custom-field views', annotations=read_only())
     def custom_fields_views_list(
         model,
         token=None,
@@ -130,7 +130,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create custom-field view', annotations=write_op())
     def custom_fields_view_create(
         data,
         token=None,
@@ -156,7 +156,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update custom-field view', annotations=write_op())
     def custom_fields_view_update(
         view_id,
         data,
@@ -177,7 +177,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete custom-field view', annotations=destructive_op())
     def custom_fields_view_delete(
         view_id,
         token=None,
@@ -198,7 +198,7 @@ def register(mcp):
     # Values
     # ------------------------------------------------------------------
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get custom-field values', annotations=read_only())
     def custom_fields_values_get(
         model,
         target_id,
@@ -232,7 +232,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Set custom-field values', annotations=write_op())
     def custom_fields_values_set(
         model,
         target_id,

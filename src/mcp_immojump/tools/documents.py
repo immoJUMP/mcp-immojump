@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, destructive_op, read_only, write_o
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List documents', annotations=read_only())
     def documents_list(
         token=None,
         organisation_id=None,
@@ -28,7 +28,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete document', annotations=destructive_op())
     def documents_delete(
         document_id,
         token=None,
@@ -45,7 +45,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Rename document', annotations=write_op())
     def documents_rename(
         document_id,
         name,
@@ -63,7 +63,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Analyze document', annotations=write_op())
     def documents_analyze(
         document_id,
         token=None,
@@ -80,7 +80,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Analyze document details', annotations=write_op())
     def documents_analyze_details(
         document_id,
         token=None,
@@ -100,7 +100,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Mark document reviewed', annotations=write_op())
     def documents_mark_reviewed(
         document_id,
         token=None,
@@ -117,7 +117,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get document analysis results', annotations=read_only())
     def documents_analysis_results(
         token=None,
         organisation_id=None,
@@ -141,7 +141,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Clear document analysis', annotations=destructive_op())
     def documents_clear_analysis(
         token=None,
         organisation_id=None,

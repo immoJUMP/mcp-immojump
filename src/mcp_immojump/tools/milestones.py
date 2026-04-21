@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, destructive_op, rea
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List milestones', annotations=read_only())
     def milestones_list(
         immobilie_id,
         token=None,
@@ -29,7 +29,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create milestone', annotations=write_op())
     def milestones_create(
         immobilie_id,
         data,
@@ -69,7 +69,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update milestone', annotations=write_op())
     def milestones_update(
         milestone_id,
         data,
@@ -94,7 +94,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete milestone', annotations=destructive_op())
     def milestones_delete(
         milestone_id,
         token=None,

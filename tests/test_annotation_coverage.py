@@ -64,3 +64,10 @@ def test_every_tool_has_description(full_tools) -> None:
     # Review requires human-readable descriptions; empty strings also fail.
     missing = [name for name, tool in full_tools if not (tool.description or '').strip()]
     assert not missing, f'Tools missing description: {missing}'
+
+
+def test_every_tool_has_title(full_tools) -> None:
+    # Anthropic Directory review expects a user-friendly title per tool so
+    # clients can render a human label instead of the machine name.
+    missing = [name for name, tool in full_tools if not (tool.title or '').strip()]
+    assert not missing, f'Tools missing user-friendly title: {missing}'

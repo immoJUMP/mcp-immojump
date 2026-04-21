@@ -4,7 +4,7 @@ from .._shared import _call_with_client, _ok, destructive_op, read_only, write_o
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Count pipelines', annotations=read_only())
     def pipeline_count(
         token=None,
         organisation_id=None,
@@ -20,7 +20,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List pipelines', annotations=read_only())
     def pipeline_list(
         token=None,
         organisation_id=None,
@@ -36,7 +36,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get pipeline', annotations=read_only())
     def pipeline_get(
         pipeline_id,
         token=None,
@@ -53,7 +53,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create pipeline', annotations=write_op())
     def pipeline_create(
         name,
         token=None,
@@ -79,7 +79,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update pipeline', annotations=write_op())
     def pipeline_update(
         pipeline_id,
         token=None,
@@ -110,7 +110,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete pipeline', annotations=destructive_op())
     def pipeline_delete(
         pipeline_id,
         token=None,
@@ -127,7 +127,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Export pipeline as YAML or JSON', annotations=read_only())
     def pipeline_export(
         pipeline_id,
         token=None,
@@ -145,7 +145,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Import pipeline from YAML or JSON', annotations=write_op())
     def pipeline_import(
         payload,
         token=None,
@@ -165,7 +165,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='List pipeline statuses', annotations=read_only())
     def pipeline_statuses_list(
         pipeline_id,
         token=None,
@@ -182,7 +182,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Create pipeline status', annotations=write_op())
     def pipeline_status_create(
         pipeline_id,
         name,
@@ -208,7 +208,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=destructive_op())
+    @mcp.tool(title='Delete pipeline status', annotations=destructive_op())
     def pipeline_status_delete(
         pipeline_id,
         status_id,

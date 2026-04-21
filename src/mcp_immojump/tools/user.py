@@ -2,7 +2,7 @@ from .._shared import _call_with_client, _ok, _require_dict, read_only, write_op
 
 
 def register(mcp):
-    @mcp.tool(annotations=read_only())
+    @mcp.tool(title='Get current user profile', annotations=read_only())
     def user_me(
         token=None,
         organisation_id=None,
@@ -18,7 +18,7 @@ def register(mcp):
         )
         return _ok(result)
 
-    @mcp.tool(annotations=write_op())
+    @mcp.tool(title='Update user profile', annotations=write_op())
     def user_update_profile(
         data,
         token=None,
