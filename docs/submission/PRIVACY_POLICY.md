@@ -20,8 +20,9 @@ The connector is a thin proxy between MCP clients (Claude.ai, Claude Desktop,
 ChatGPT) and the existing immoJUMP REST API. It does not persist user data
 in a separate database. All business data (contacts, properties, activities,
 pipelines, documents) is stored in the user's immoJUMP organisation and
-subject to the platform's main privacy policy at «TODO: link to main
-immojump.de privacy policy».
+subject to the platform's main privacy policy at
+<https://immojump.de/ng/datenschutz>. The platform's terms of service
+apply at <https://immojump.de/ng/agb>.
 
 ## 3. Data processed
 

@@ -63,4 +63,4 @@ Siehe `Dockerfile` und `README.md`.
 
 ---
 
-*Footer links:* Privacy Policy · Terms · GitHub · Status
+*Footer links:* [Datenschutz](https://immojump.de/ng/datenschutz) · [AGB](https://immojump.de/ng/agb) · [Impressum](https://immojump.de/ng/impressum) · [GitHub](https://github.com/immoJUMP/mcp-immojump)

@@ -24,8 +24,8 @@ submitted.
 | Server URL (Streamable HTTP) | `https://mcp.immojump.de/mcp` |
 | Server URL (SSE) | `https://mcp.immojump.de/sse` |
 | OAuth metadata URL | `https://mcp.immojump.de/.well-known/oauth-protected-resource` |
-| Privacy Policy URL | «TODO: public URL, e.g. https://immojump.de/legal/privacy-mcp» |
-| Terms of Service URL | «TODO: public URL» |
+| Privacy Policy URL | <https://immojump.de/ng/datenschutz> |
+| Terms of Service URL | <https://immojump.de/ng/agb> |
 
 ## 2. Auth & transport (Review Criteria)
 
