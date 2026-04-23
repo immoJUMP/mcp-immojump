@@ -32,13 +32,22 @@ def register(mcp):
         search=None,
         status=None,
         type=None,
+        priority=None,
+        assigned_to=None,
+        immobilien_tag_ids=None,
         base_url=None,
     ):
         """List activities/tasks with pagination and optional filters.
 
-        - search: free-text query
-        - status: one of Geplant, In Bearbeitung, Abgeschlossen, Abgebrochen
-        - type: one of ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, SONSTIGES
+        Returns paginated result: {items: [...], total, page, per_page, has_next, has_prev}
+
+        Filters (all optional):
+        - search: free-text query (searches title + description)
+        - status: comma-separated, e.g. "Geplant,In Bearbeitung" (valid: Geplant, In Bearbeitung, Abgeschlossen, Abgebrochen)
+        - type: comma-separated, e.g. "ANRUF,MEETING" (valid: ANRUF, BESICHTIGUNG, BRIEF, E-MAIL, MEETING, NOTIZ, SONSTIGES)
+        - priority: comma-separated, e.g. "Hoch,Mittel" (valid: Hoch, Mittel, Niedrig, NA)
+        - assigned_to: user ID to filter by assignee
+        - immobilien_tag_ids: comma-separated tag IDs to filter by property tags
 
         Call activities_meta first to get all valid filter values.
         """
@@ -53,6 +62,9 @@ def register(mcp):
                 search=search,
                 status=status,
                 type=type,
+                priority=priority,
+                assigned_to=assigned_to,
+                immobilien_tag_ids=immobilien_tag_ids,
             ),
         )
         return _ok(result)

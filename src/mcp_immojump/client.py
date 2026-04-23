@@ -458,6 +458,9 @@ class ImmojumpAPIClient:
         search: str | None = None,
         status: str | None = None,
         type: str | None = None,
+        priority: str | None = None,
+        assigned_to: str | None = None,
+        immobilien_tag_ids: str | None = None,
     ) -> Any:
         params: dict[str, Any] = {
             'organisation_id': self.credentials.organisation_id,
@@ -470,6 +473,12 @@ class ImmojumpAPIClient:
             params['status'] = status
         if type:
             params['type'] = type
+        if priority:
+            params['priority'] = priority
+        if assigned_to:
+            params['assigned_to'] = assigned_to
+        if immobilien_tag_ids:
+            params['immobilien_tag_ids'] = immobilien_tag_ids
         return self._request('GET', '/api/activities/activities', params=params)
 
     def activities_get(self, *, activity_id: str) -> Any:
