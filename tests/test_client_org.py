@@ -126,6 +126,45 @@ def test_feed_list_params():
     assert captured['params']['cursor'] == 'abc'
 
 
+def test_feed_by_context_uses_type_and_id_query_params():
+    """Regression: backend reads `type` and `id`, not `context_type`/`context_id`."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['method'] = req.method
+        captured['path'] = req.url.path
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json={'items': [], 'nextCursor': None})
+
+    with _capture_client(handler) as client:
+        client.feed_by_context(context_type='immobilie', context_id='imm-1')
+
+    assert captured['method'] == 'GET'
+    assert captured['path'] == '/api/organisation-feed/by-context'
+    # Backend expects `type`/`id`; sending `context_type`/`context_id` returns 400.
+    assert captured['params']['type'] == 'immobilie'
+    assert captured['params']['id'] == 'imm-1'
+    assert captured['params']['organisation_id'] == 'org-1'
+    # Guardrail: the legacy (broken) field names must not be sent.
+    assert 'context_type' not in captured['params']
+    assert 'context_id' not in captured['params']
+
+
+def test_feed_by_context_preserves_context_type_values():
+    """Each supported entity context_type maps through to the `type` param verbatim."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json={'items': [], 'nextCursor': None})
+
+    for ctx_type in ('immobilie', 'contact', 'deal', 'activity'):
+        with _capture_client(handler) as client:
+            client.feed_by_context(context_type=ctx_type, context_id='x-1')
+        assert captured['params']['type'] == ctx_type
+        assert captured['params']['id'] == 'x-1'
+
+
 def test_feed_create_post_includes_org():
     captured = {}
 

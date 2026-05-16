@@ -1118,13 +1118,14 @@ class ImmojumpAPIClient:
         context_type: str,
         context_id: str,
     ) -> Any:
+        # Endpoint uses /by-context?type=&id= (not context_type/context_id).
         return self._request(
             'GET',
             '/api/organisation-feed/by-context',
             params={
                 'organisation_id': self.credentials.organisation_id,
-                'context_type': context_type,
-                'context_id': context_id,
+                'type': context_type,
+                'id': context_id,
             },
         )
 
