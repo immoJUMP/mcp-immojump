@@ -60,7 +60,8 @@ def register(mcp):
     ):
         """Create a new feed post.
 
-        data: {"text": "...", "channel_id": "..."} (optional: mentions, attachments).
+        data: {"message": "...", "channel_id": "..."} (optional: title, context_type, context_id, meta).
+        Legacy "text" is accepted and mapped to "message" for backwards compatibility.
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -136,7 +137,7 @@ def register(mcp):
     ):
         """Add a comment to a feed post.
 
-        data: {"text": "..."}.
+        data: {"message": "..."}. Legacy "text" is accepted and mapped to "message".
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -193,7 +194,8 @@ def register(mcp):
     ):
         """Comment on a specific object (property, contact, deal).
 
-        data: {"context_type": "immobilie", "context_id": "...", "text": "..."}.
+        data: {"context_type": "immobilie", "context_id": "...", "message": "..."}.
+        Legacy "text" is accepted and mapped to "message".
         """
 
         payload = _require_dict(field_name='data', value=data)

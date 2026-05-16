@@ -165,7 +165,8 @@ def test_feed_by_context_preserves_context_type_values():
         assert captured['params']['id'] == 'x-1'
 
 
-def test_feed_create_post_includes_org():
+def test_feed_create_post_sends_message_and_org():
+    """Canonical payload uses `message` — the field the backend reads."""
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
@@ -175,11 +176,158 @@ def test_feed_create_post_includes_org():
         return httpx.Response(201, json={})
 
     with _capture_client(handler) as client:
-        client.feed_create_post(data={'text': 'Hello team'})
+        client.feed_create_post(data={'message': 'Hello team', 'channel_id': 'ch-1'})
 
     assert captured['method'] == 'POST'
     assert captured['path'] == '/api/organisation-feed/post'
     assert captured['json']['organisation_id'] == 'org-1'
+    assert captured['json']['message'] == 'Hello team'
+    assert captured['json']['channel_id'] == 'ch-1'
+
+
+def test_feed_create_post_aliases_legacy_text_to_message():
+    """Backwards compat: callers using the legacy `text` field still produce a real post."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_create_post(data={'text': 'Hello team'})
+
+    # Backend reads `message`, so it must be present and equal to the legacy `text`.
+    assert captured['json']['message'] == 'Hello team'
+
+
+def test_feed_create_post_message_wins_over_text_when_both_present():
+    """Explicit `message` is authoritative; `text` is only a fallback."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_create_post(data={'message': 'canonical', 'text': 'legacy'})
+
+    assert captured['json']['message'] == 'canonical'
+    # `text` is forwarded untouched — backend ignores it, but we don't strip caller data.
+    assert captured['json'].get('text') == 'legacy'
+
+
+def test_feed_create_post_blank_text_does_not_overwrite_blank_message():
+    """A whitespace-only `text` must not be promoted into `message`."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_create_post(data={'text': '   '})
+
+    # Aliasing must not turn whitespace into a fake message.
+    assert 'message' not in captured['json'] or not (captured['json'].get('message') or '').strip()
+
+
+def test_feed_create_post_does_not_mutate_caller_dict():
+    """Aliasing happens on a copy; the caller's dict must stay intact."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    original = {'text': 'Hello'}
+    with _capture_client(handler) as client:
+        client.feed_create_post(data=original)
+
+    assert original == {'text': 'Hello'}, 'caller-supplied dict was mutated'
+    assert captured['json']['message'] == 'Hello'
+
+
+def test_feed_create_post_forwards_extra_fields():
+    """title, channel_id, context_type/context_id and meta must pass through untouched."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_create_post(data={
+            'message': 'body',
+            'title': 'subject',
+            'channel_id': 'ch-1',
+            'context_type': 'immobilie',
+            'context_id': 'imm-1',
+            'meta': {'tag': 'note'},
+        })
+
+    body = captured['json']
+    assert body['title'] == 'subject'
+    assert body['channel_id'] == 'ch-1'
+    assert body['context_type'] == 'immobilie'
+    assert body['context_id'] == 'imm-1'
+    assert body['meta'] == {'tag': 'note'}
+
+
+def test_feed_add_comment_aliases_text_and_keeps_path():
+    """feed_add_comment shares the same field-name bug; aliasing must apply here too."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['method'] = req.method
+        captured['path'] = req.url.path
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_add_comment(event_id='ev-1', data={'text': 'thx'})
+
+    assert captured['method'] == 'POST'
+    assert captured['path'] == '/api/organisation-feed/ev-1/comments'
+    assert captured['json']['message'] == 'thx'
+    assert captured['json']['organisation_id'] == 'org-1'
+
+
+def test_feed_add_comment_accepts_canonical_message():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_add_comment(event_id='ev-1', data={'message': 'thx'})
+
+    assert captured['json']['message'] == 'thx'
+
+
+def test_feed_comment_object_aliases_text():
+    """feed_comment_object POST body shares the field-name bug; aliasing must apply."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['method'] = req.method
+        captured['path'] = req.url.path
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json={})
+
+    with _capture_client(handler) as client:
+        client.feed_comment_object(data={
+            'context_type': 'immobilie',
+            'context_id': 'imm-1',
+            'text': 'Looks good',
+        })
+
+    assert captured['method'] == 'POST'
+    assert captured['path'] == '/api/organisation-feed/comment-object'
+    assert captured['json']['message'] == 'Looks good'
+    # Context routing fields stay on the body (this endpoint uses them in JSON, not query).
+    assert captured['json']['context_type'] == 'immobilie'
+    assert captured['json']['context_id'] == 'imm-1'
 
 
 def test_feed_toggle_reaction_body():

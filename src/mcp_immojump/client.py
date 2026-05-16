@@ -141,6 +141,24 @@ def _normalize_id(value: Any) -> str:
     return str(value or '').strip()
 
 
+def _normalize_feed_message_payload(data: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy of ``data`` with ``text`` aliased to ``message``.
+
+    The org-feed backend reads ``message`` from the JSON body. Earlier
+    versions of the MCP docstrings instructed callers to send ``text``,
+    which silently produced empty posts. We preserve the original keys and
+    only fill ``message`` when it is missing or empty, so legacy callers
+    keep working without changing their payload shape.
+    """
+    payload = dict(data or {})
+    message = payload.get('message')
+    if not (isinstance(message, str) and message.strip()):
+        text = payload.get('text')
+        if isinstance(text, str) and text.strip():
+            payload['message'] = text
+    return payload
+
+
 def _canonical_timestamp(value: Any) -> str | None:
     text = str(value or '').strip()
     if not text:
@@ -1130,7 +1148,7 @@ class ImmojumpAPIClient:
         )
 
     def feed_create_post(self, *, data: dict[str, Any]) -> Any:
-        payload = dict(data)
+        payload = _normalize_feed_message_payload(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         return self._request('POST', '/api/organisation-feed/post', json=payload)
 
@@ -1148,7 +1166,7 @@ class ImmojumpAPIClient:
         return self._request('GET', f'/api/organisation-feed/{event_id}/comments')
 
     def feed_add_comment(self, *, event_id: str, data: dict[str, Any]) -> Any:
-        payload = dict(data)
+        payload = _normalize_feed_message_payload(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         return self._request('POST', f'/api/organisation-feed/{event_id}/comments', json=payload)
 
@@ -1162,7 +1180,7 @@ class ImmojumpAPIClient:
         return self._request('POST', f'/api/organisation-feed/{event_id}/seen')
 
     def feed_comment_object(self, *, data: dict[str, Any]) -> Any:
-        payload = dict(data)
+        payload = _normalize_feed_message_payload(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         return self._request('POST', '/api/organisation-feed/comment-object', json=payload)
 
