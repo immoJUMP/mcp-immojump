@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import copy
 import logging
 from datetime import datetime, timezone
@@ -10,11 +12,22 @@ from typing import Any
 import httpx
 
 
-ALLOWED_BASE_URLS = {
+_DEFAULT_ALLOWED_BASE_URLS = {
     'http://localhost:8081',
     'https://beta.immojump.de',
     'https://immojump.de',
 }
+
+# Allow operators to whitelist additional ImmoJUMP-compatible base URLs
+# at runtime via env. Comma-separated, e.g.:
+#   ALLOWED_BASE_URLS_EXTRA=https://opulibra-estate.de,https://customer2.de
+# Empty / unset env keeps the default set.
+def _load_extra_base_urls() -> set[str]:
+    raw = os.getenv('ALLOWED_BASE_URLS_EXTRA', '') or ''
+    return {u.strip().rstrip('/') for u in raw.split(',') if u.strip()}
+
+
+ALLOWED_BASE_URLS = _DEFAULT_ALLOWED_BASE_URLS | _load_extra_base_urls()
 
 
 logger = logging.getLogger(__name__)
