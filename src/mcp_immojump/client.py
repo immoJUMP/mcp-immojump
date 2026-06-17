@@ -105,6 +105,32 @@ def _normalize_payload_dates(payload: dict[str, Any], datetime_fields: tuple[str
             payload[field] = _normalize_date_only(payload[field])
 
 
+def _normalize_activity_payload(payload: dict[str, Any]) -> None:
+    """Map MCP-friendly aliases (advertised in the tool docstring) onto the
+    real ActivitySchema field names so the backend's strict Marshmallow
+    validation accepts them.
+
+    The tools/activities.py docstring promises:
+      - activity_status -> backend field is `status`
+      - due_date        -> backend field is `scheduled_end`
+      - contact_id      -> backend field is `contact_ids` (list)
+
+    The alias key is ALWAYS removed (the backend would 400 on it),
+    but the real field wins if both are present.
+    """
+    if 'activity_status' in payload:
+        alias = payload.pop('activity_status')
+        payload.setdefault('status', alias)
+    if 'due_date' in payload:
+        alias = payload.pop('due_date')
+        payload.setdefault('scheduled_end', alias)
+    if 'contact_id' in payload:
+        alias = payload.pop('contact_id')
+        if 'contact_ids' not in payload:
+            payload['contact_ids'] = [alias] if alias else []
+
+
+
 class ImmojumpAPIError(RuntimeError):
     """Raised when the ImmoJUMP API returns an error response."""
 
@@ -519,12 +545,14 @@ class ImmojumpAPIClient:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         _normalize_payload_dates(payload, datetime_fields=('due_date',))
+        _normalize_activity_payload(payload)
         return self._request('POST', '/api/activities/activities', json=payload)
 
     def activities_create_for_property(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         _normalize_payload_dates(payload, datetime_fields=('due_date',))
+        _normalize_activity_payload(payload)
         return self._request(
             'POST',
             f'/api/activities/activities/immobilie/{immobilie_id}',
@@ -534,6 +562,7 @@ class ImmojumpAPIClient:
     def activities_update(self, *, activity_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
         _normalize_payload_dates(payload, datetime_fields=('due_date',))
+        _normalize_activity_payload(payload)
         return self._request('PUT', f'/api/activities/activities/{activity_id}', json=payload)
 
     def activities_delete(self, *, activity_id: str) -> Any:

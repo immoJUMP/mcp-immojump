@@ -152,24 +152,30 @@ class TestNormalizePayloadDates:
 # ── Activities (already fixed, regression tests) ──
 
 class TestActivitiesDateNormalization:
+    # NOTE: For activities, due_date is an MCP-friendly alias that the client
+    # normalizes to the backend's real field `scheduled_end` (ActivitySchema
+    # has no `due_date` field and would 400 on it). See _normalize_activity_payload.
 
     def test_create_date_only(self):
         captured, handler = _json_capture()
         with _capture_client(handler) as client:
             client.activities_create(data={'title': 'T', 'due_date': '2026-04-23'})
-        assert captured['json']['due_date'] == '2026-04-23T00:00:00+00:00'
+        assert 'due_date' not in captured['json']
+        assert captured['json']['scheduled_end'] == '2026-04-23T00:00:00+00:00'
 
     def test_create_iso_z(self):
         captured, handler = _json_capture()
         with _capture_client(handler) as client:
             client.activities_create(data={'title': 'T', 'due_date': '2026-04-23T14:30:00Z'})
-        assert captured['json']['due_date'] == '2026-04-23T14:30:00+00:00'
+        assert 'due_date' not in captured['json']
+        assert captured['json']['scheduled_end'] == '2026-04-23T14:30:00+00:00'
 
     def test_create_no_due_date(self):
         captured, handler = _json_capture()
         with _capture_client(handler) as client:
             client.activities_create(data={'title': 'T'})
         assert 'due_date' not in captured['json']
+        assert 'scheduled_end' not in captured['json']
 
     def test_create_for_property_date_only(self):
         captured, handler = _json_capture()
@@ -177,13 +183,15 @@ class TestActivitiesDateNormalization:
             client.activities_create_for_property(
                 immobilie_id='imm-1', data={'title': 'B', 'due_date': '2026-06-15'},
             )
-        assert captured['json']['due_date'] == '2026-06-15T00:00:00+00:00'
+        assert 'due_date' not in captured['json']
+        assert captured['json']['scheduled_end'] == '2026-06-15T00:00:00+00:00'
 
     def test_update_date_only(self):
         captured, handler = _json_capture()
         with _capture_client(handler) as client:
             client.activities_update(activity_id='a-1', data={'due_date': '2026-05-01'})
-        assert captured['json']['due_date'] == '2026-05-01T00:00:00+00:00'
+        assert 'due_date' not in captured['json']
+        assert captured['json']['scheduled_end'] == '2026-05-01T00:00:00+00:00'
 
 
 # ── Tickets ──
