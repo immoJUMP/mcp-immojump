@@ -35,6 +35,7 @@ def register(mcp):
         priority=None,
         assigned_to=None,
         immobilien_tag_ids=None,
+        unscheduled=False,
         base_url=None,
     ):
         """List activities/tasks with pagination and optional filters.
@@ -48,6 +49,9 @@ def register(mcp):
         - priority: comma-separated, e.g. "Hoch,Mittel" (valid: Hoch, Mittel, Niedrig, NA)
         - assigned_to: user ID to filter by assignee
         - immobilien_tag_ids: comma-separated tag IDs to filter by property tags
+        - unscheduled: if True, return only activities with no due date yet
+          (nothing scheduled). Combine with status="Geplant" to get the open
+          to-dos that still need a date — the "Zu terminieren" view.
 
         Call activities_meta first to get all valid filter values.
         """
@@ -65,6 +69,7 @@ def register(mcp):
                 priority=priority,
                 assigned_to=assigned_to,
                 immobilien_tag_ids=immobilien_tag_ids,
+                unscheduled=bool(unscheduled),
             ),
         )
         return _ok(result)
