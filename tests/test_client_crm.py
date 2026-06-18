@@ -181,6 +181,38 @@ def test_activities_list_path_and_params():
     assert captured['path'] == '/api/activities/activities'
     assert captured['params']['status'] == 'open'
     assert captured['params']['type'] == 'call'
+    # unscheduled is opt-in — absent unless explicitly requested.
+    assert 'unscheduled' not in captured['params']
+
+
+def test_activities_list_unscheduled_sends_flag():
+    """unscheduled=True must surface as ?unscheduled=true so an agent can ask
+    for the open to-dos that still need a date ("Zu terminieren")."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json=[])
+
+    with _capture_client(handler) as client:
+        client.activities_list(status='Geplant', unscheduled=True)
+
+    assert captured['params']['status'] == 'Geplant'
+    assert captured['params']['unscheduled'] == 'true'
+
+
+def test_activities_list_unscheduled_default_off():
+    """The default call must not send the flag at all."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json=[])
+
+    with _capture_client(handler) as client:
+        client.activities_list()
+
+    assert 'unscheduled' not in captured['params']
 
 
 def test_activities_create_includes_org():

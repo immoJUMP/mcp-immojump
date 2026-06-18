@@ -518,6 +518,7 @@ class ImmojumpAPIClient:
         priority: str | None = None,
         assigned_to: str | None = None,
         immobilien_tag_ids: str | None = None,
+        unscheduled: bool = False,
     ) -> Any:
         params: dict[str, Any] = {
             'organisation_id': self.credentials.organisation_id,
@@ -536,6 +537,8 @@ class ImmojumpAPIClient:
             params['assigned_to'] = assigned_to
         if immobilien_tag_ids:
             params['immobilien_tag_ids'] = immobilien_tag_ids
+        if unscheduled:
+            params['unscheduled'] = 'true'
         return self._request('GET', '/api/activities/activities', params=params)
 
     def activities_get(self, *, activity_id: str) -> Any:
