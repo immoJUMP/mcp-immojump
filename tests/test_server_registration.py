@@ -20,12 +20,12 @@ def test_standard_server_tool_count():
 
 def test_profi_server_tool_count():
     from mcp_immojump.servers.profi import mcp
-    assert _tool_count(mcp) == 129
+    assert _tool_count(mcp) == 131
 
 
 def test_full_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 170
+    assert _tool_count(mcp) == 172
 
 
 def test_standard_is_subset_of_profi():
@@ -92,7 +92,7 @@ def test_pipeline_server_tool_count():
 
 def test_org_server_tool_count():
     from mcp_immojump.servers.org import mcp
-    assert _tool_count(mcp) == 58
+    assert _tool_count(mcp) == 60
 
 
 def test_no_tool_overlap_between_domain_servers():

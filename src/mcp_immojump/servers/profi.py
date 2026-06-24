@@ -1,12 +1,12 @@
-"""Profi MCP server — 129 tools for professional investors.
+"""Profi MCP server — 131 tools for professional investors.
 
-Standard + Deals, Milestones, Custom Fields, Email.
+Standard + Deals, Tickets, Milestones, Custom Fields, Email (inbox + send).
 """
 from ._base import create_server, run_server
 from ..tools import (
     connection, immobilien, units, contacts, activities,
     activity_templates, pipelines, statuses, tags, documents,
-    deals, milestones, custom_fields, email_messages,
+    deals, tickets, milestones, custom_fields, email_messages,
 )
 
 mcp = create_server('immojump-profi')
@@ -22,6 +22,7 @@ statuses.register(mcp)
 tags.register(mcp)
 documents.register(mcp)
 deals.register(mcp)
+tickets.register(mcp)
 milestones.register(mcp)
 custom_fields.register(mcp)
 email_messages.register(mcp)
