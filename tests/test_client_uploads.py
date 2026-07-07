@@ -98,3 +98,33 @@ def test_image_upload_guesses_content_type_from_filename():
     with _capture_client(_capture(cap)) as client:
         client.image_upload(filename='pic.png', content=b'\x89PNG', immobilie_id='imm-1')
     assert b'image/png' in cap['body']
+
+
+def test_documents_upload_returns_documents_under_key():
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=[{'id': 'doc-1'}])
+    with _capture_client(handler) as client:
+        result = client.documents_upload(filename='a.pdf', content=b'x', immobilie_id='imm-1')
+    assert result['documents'] == [{'id': 'doc-1'}]
+    assert 'duplicates' not in result
+
+
+def test_documents_upload_surfaces_skip_headers():
+    import json as _json
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[],
+            headers={
+                'X-Upload-Duplicate-Files': _json.dumps([{'fileName': 'expose.pdf'}]),
+                'X-Upload-Empty-Files': _json.dumps(['leer.pdf']),
+                'X-Upload-Failed-Files': _json.dumps([{'fileName': 'kaputt.pdf', 'message': 'Invalid PDF'}]),
+            },
+        )
+    with _capture_client(handler) as client:
+        result = client.documents_upload(filename='expose.pdf', content=b'x', immobilie_id='imm-1')
+    assert result['documents'] == []
+    assert result['duplicates'][0]['fileName'] == 'expose.pdf'
+    assert result['skipped_empty'] == ['leer.pdf']
+    assert result['failed'][0]['message'] == 'Invalid PDF'

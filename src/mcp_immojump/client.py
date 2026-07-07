@@ -231,7 +231,9 @@ class ImmojumpAPIClient:
     def __exit__(self, exc_type, exc, tb) -> None:
         self.close()
 
-    def _request(self, method: str, path: str, **kwargs) -> Any:
+    def _request_raw(self, method: str, path: str, **kwargs) -> httpx.Response:
+        """Perform the request and raise on HTTP errors, returning the raw
+        response so callers can inspect headers (e.g. upload skip metadata)."""
         response = self._client.request(method, path, **kwargs)
         if response.status_code >= 400:
             try:
@@ -240,7 +242,10 @@ class ImmojumpAPIClient:
             except Exception:
                 message = response.text
             raise ImmojumpAPIError(response.status_code, message)
+        return response
 
+    def _request(self, method: str, path: str, **kwargs) -> Any:
+        response = self._request_raw(method, path, **kwargs)
         if not response.content:
             return {}
         try:
@@ -912,7 +917,42 @@ class ImmojumpAPIClient:
         if allow_duplicate_upload:
             data['allow_duplicate_upload'] = 'true'
         files = {'files[]': (name, blob, 'application/octet-stream')}
-        return self._request('POST', '/api/documents/documents/bulk-upload', data=data, files=files)
+        response = self._request_raw(
+            'POST', '/api/documents/documents/bulk-upload', data=data, files=files
+        )
+
+        documents: Any = []
+        if response.content:
+            try:
+                documents = response.json()
+            except Exception:
+                documents = {'raw': response.text}
+
+        # The backend reports skipped files (SHA-256 duplicates, empty or
+        # unreadable files) via headers with an otherwise-empty body, so a
+        # bare list would hide why nothing was stored. Surface them.
+        import json as _json
+
+        def _header_list(header_name: str) -> list:
+            raw = response.headers.get(header_name)
+            if not raw:
+                return []
+            try:
+                return _json.loads(raw)
+            except (ValueError, TypeError):
+                return []
+
+        result: dict[str, Any] = {'documents': documents}
+        duplicates = _header_list('X-Upload-Duplicate-Files')
+        skipped_empty = _header_list('X-Upload-Empty-Files')
+        failed = _header_list('X-Upload-Failed-Files')
+        if duplicates:
+            result['duplicates'] = duplicates
+        if skipped_empty:
+            result['skipped_empty'] = skipped_empty
+        if failed:
+            result['failed'] = failed
+        return result
 
     def image_upload(
         self,
