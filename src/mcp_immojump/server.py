@@ -30,6 +30,7 @@ from .tools import (
     deals,
     tickets,
     documents,
+    images,
     loans,
     milestones,
     units,
@@ -59,6 +60,7 @@ custom_fields.register(mcp)
 deals.register(mcp)
 tickets.register(mcp)
 documents.register(mcp)
+images.register(mcp)
 loans.register(mcp)
 milestones.register(mcp)
 units.register(mcp)

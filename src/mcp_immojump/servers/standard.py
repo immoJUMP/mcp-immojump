@@ -1,4 +1,4 @@
-"""Standard MCP server — 88 tools for everyday investor workflows.
+"""Standard MCP server — 89 tools for everyday investor workflows.
 
 Covers: Immobilien, Units, Kontakte, Aktivitäten, Activity Templates,
 Pipelines, Statuses, Tags, Dokumente.
@@ -6,7 +6,7 @@ Pipelines, Statuses, Tags, Dokumente.
 from ._base import create_server, run_server
 from ..tools import (
     connection, immobilien, units, contacts, activities,
-    activity_templates, pipelines, statuses, tags, documents,
+    activity_templates, pipelines, statuses, tags, documents, images,
 )
 
 mcp = create_server('immojump-standard')
@@ -21,6 +21,7 @@ pipelines.register(mcp)
 statuses.register(mcp)
 tags.register(mcp)
 documents.register(mcp)
+images.register(mcp)
 
 
 def main() -> None:

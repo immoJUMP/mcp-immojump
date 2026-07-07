@@ -28,6 +28,40 @@ def register(mcp):
         )
         return _ok(result)
 
+    @mcp.tool(annotations=write_op())
+    def documents_upload(
+        filename,
+        content_base64=None,
+        file_path=None,
+        immobilie_id=None,
+        allow_duplicate_upload=False,
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """Upload a document (PDF, image, office file) to a property.
+
+        Provide the file either as `content_base64` (base64-encoded bytes) or
+        as a local `file_path`. `filename` sets the stored name; its extension
+        drives parsing and AI analysis.
+        - immobilie_id: attach the document to this property
+        - allow_duplicate_upload: bypass the SHA-256 duplicate guard
+        """
+
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.documents_upload(
+                filename=filename,
+                content_base64=content_base64,
+                file_path=file_path,
+                immobilie_id=immobilie_id,
+                allow_duplicate_upload=bool(allow_duplicate_upload),
+            ),
+        )
+        return _ok(result)
+
     @mcp.tool(annotations=destructive_op())
     def documents_delete(
         document_id,

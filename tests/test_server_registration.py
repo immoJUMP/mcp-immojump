@@ -15,17 +15,17 @@ def _tool_names(mcp_instance) -> set[str]:
 
 def test_standard_server_tool_count():
     from mcp_immojump.servers.standard import mcp
-    assert _tool_count(mcp) == 87
+    assert _tool_count(mcp) == 89
 
 
 def test_profi_server_tool_count():
     from mcp_immojump.servers.profi import mcp
-    assert _tool_count(mcp) == 131
+    assert _tool_count(mcp) == 133
 
 
 def test_full_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 172
+    assert _tool_count(mcp) == 174
 
 
 def test_standard_is_subset_of_profi():
@@ -54,6 +54,18 @@ def test_standard_has_core_tools():
         assert tool in names, f'Standard missing core tool: {tool}'
 
 
+def test_upload_tools_registered_where_documents_are():
+    """documents_upload + image_upload ship alongside the document tools."""
+    from mcp_immojump.servers.standard import mcp as std
+    from mcp_immojump.servers.profi import mcp as pro
+    from mcp_immojump.servers.properties import mcp as props
+    from mcp_immojump.server import mcp as full
+    for name, srv in [('standard', std), ('profi', pro), ('properties', props), ('full', full)]:
+        names = _tool_names(srv)
+        assert 'documents_upload' in names, f'{name} missing documents_upload'
+        assert 'image_upload' in names, f'{name} missing image_upload'
+
+
 def test_standard_excludes_profi_tools():
     """Standard must NOT include deals, tickets, milestones."""
     from mcp_immojump.servers.standard import mcp
@@ -77,7 +89,7 @@ def test_every_tier_includes_connection_test():
 
 def test_properties_server_tool_count():
     from mcp_immojump.servers.properties import mcp
-    assert _tool_count(mcp) == 39
+    assert _tool_count(mcp) == 41
 
 
 def test_crm_server_tool_count():

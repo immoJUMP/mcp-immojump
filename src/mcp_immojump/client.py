@@ -855,6 +855,92 @@ class ImmojumpAPIClient:
         return self._request('DELETE', '/api/documents/analysis-results', params=params)
 
     # ------------------------------------------------------------------
+    # Uploads (documents + images)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _prepare_upload_payload(
+        *,
+        filename: str | None,
+        content: bytes | str | None,
+        content_base64: str | None,
+        file_path: str | None,
+    ) -> tuple[str, bytes]:
+        """Resolve an upload source into a ``(filename, bytes)`` pair.
+
+        Exactly one source is expected: a local ``file_path``, raw ``content``
+        (bytes or str), or ``content_base64``.  When the bytes come from
+        memory a ``filename`` is required so the backend keeps the correct
+        extension for parsing/analysis.
+        """
+        if file_path:
+            path = Path(file_path)
+            return (filename or path.name), path.read_bytes()
+        if content_base64 is not None:
+            import base64
+            if not filename:
+                raise ValueError('filename is required when uploading base64 content')
+            return filename, base64.b64decode(content_base64)
+        if content is not None:
+            if isinstance(content, str):
+                content = content.encode('utf-8')
+            if not filename:
+                raise ValueError('filename is required when uploading raw content')
+            return filename, content
+        raise ValueError('one of file_path, content, or content_base64 is required')
+
+    def documents_upload(
+        self,
+        *,
+        filename: str | None = None,
+        content: bytes | str | None = None,
+        content_base64: str | None = None,
+        file_path: str | None = None,
+        immobilie_id: str | None = None,
+        allow_duplicate_upload: bool = False,
+    ) -> Any:
+        """Upload a single document via the property bulk-upload endpoint."""
+        name, blob = self._prepare_upload_payload(
+            filename=filename,
+            content=content,
+            content_base64=content_base64,
+            file_path=file_path,
+        )
+        data: dict[str, Any] = {'organisation_id': self.credentials.organisation_id}
+        if immobilie_id:
+            data['immobilien_id'] = immobilie_id
+        if allow_duplicate_upload:
+            data['allow_duplicate_upload'] = 'true'
+        files = {'files[]': (name, blob, 'application/octet-stream')}
+        return self._request('POST', '/api/documents/documents/bulk-upload', data=data, files=files)
+
+    def image_upload(
+        self,
+        *,
+        filename: str | None = None,
+        content: bytes | str | None = None,
+        content_base64: str | None = None,
+        file_path: str | None = None,
+        immobilie_id: str | None = None,
+        content_type: str | None = None,
+    ) -> Any:
+        """Upload an image for a property via the direct-upload endpoint."""
+        name, blob = self._prepare_upload_payload(
+            filename=filename,
+            content=content,
+            content_base64=content_base64,
+            file_path=file_path,
+        )
+        if not content_type:
+            import mimetypes
+            content_type = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+        data: dict[str, Any] = {}
+        if immobilie_id:
+            data['immobilie_id'] = immobilie_id
+        files = {'file': (name, blob, content_type)}
+        return self._request('POST', '/api/images/upload-direct', data=data, files=files)
+
+    # ------------------------------------------------------------------
     # Loans
     # ------------------------------------------------------------------
 

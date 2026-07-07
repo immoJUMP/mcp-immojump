@@ -1,11 +1,11 @@
 """immoJUMP Properties MCP server.
 
-Domains: Immobilien, Units, Loans, Milestones, Documents, Valuation.
-~39 tools.
+Domains: Immobilien, Units, Loans, Milestones, Documents, Images, Valuation.
+~41 tools.
 """
 
 from ._base import create_server, run_server
-from ..tools import connection, immobilien, units, loans, milestones, documents, valuation
+from ..tools import connection, immobilien, units, loans, milestones, documents, images, valuation
 
 mcp = create_server('immojump-properties')
 
@@ -15,6 +15,7 @@ units.register(mcp)
 loans.register(mcp)
 milestones.register(mcp)
 documents.register(mcp)
+images.register(mcp)
 valuation.register(mcp)
 
 

@@ -5,7 +5,7 @@ Standard + Deals, Tickets, Milestones, Custom Fields, Email (inbox + send).
 from ._base import create_server, run_server
 from ..tools import (
     connection, immobilien, units, contacts, activities,
-    activity_templates, pipelines, statuses, tags, documents,
+    activity_templates, pipelines, statuses, tags, documents, images,
     deals, tickets, milestones, custom_fields, email_messages,
 )
 
@@ -21,6 +21,7 @@ pipelines.register(mcp)
 statuses.register(mcp)
 tags.register(mcp)
 documents.register(mcp)
+images.register(mcp)
 deals.register(mcp)
 tickets.register(mcp)
 milestones.register(mcp)
