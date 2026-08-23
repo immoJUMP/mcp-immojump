@@ -131,11 +131,68 @@ def _normalize_activity_payload(payload: dict[str, Any]) -> None:
 
 
 
-class ImmojumpAPIError(RuntimeError):
-    """Raised when the ImmoJUMP API returns an error response."""
+#: Keys the backend adds to a validation error so the caller can fix the call
+#: itself, in the order they help most: what was wrong, what to write instead,
+#: which values are allowed. See ``modules/utils/validation_errors.py``.
+_HINT_KEYS = ('errors', 'error', 'field_suggestions', 'valid_values', 'valid_fields')
 
-    def __init__(self, status_code: int, message: str):
-        super().__init__(f'ImmoJUMP API error ({status_code}): {message}')
+#: Rendered hints are read by a model, so they compete with everything else in
+#: its context. Long enum lists get cut rather than allowed to bury the message.
+_HINT_VALUE_LIMIT = 8
+_HINT_TEXT_LIMIT = 600
+
+
+def _render_hint_value(value: Any) -> str:
+    if isinstance(value, dict):
+        return '; '.join(f'{k}: {_render_hint_value(v)}' for k, v in value.items())
+    if isinstance(value, (list, tuple)):
+        shown = [str(v) for v in value[:_HINT_VALUE_LIMIT]]
+        if len(value) > _HINT_VALUE_LIMIT:
+            shown.append(f'… (+{len(value) - _HINT_VALUE_LIMIT})')
+        return ', '.join(shown)
+    return str(value)
+
+
+def _render_hints(payload: dict[str, Any], message: str) -> str:
+    """Flatten the backend's hint fields into one readable line.
+
+    Without this the model only ever sees "Validierungsfehler." and has to
+    guess field names and enum values — measured at four wasted calls for a
+    single unknown field.
+    """
+    parts: list[str] = []
+    for key in _HINT_KEYS:
+        value = payload.get(key)
+        if not value:
+            continue
+        rendered = _render_hint_value(value)
+        # A plain-string ``error``/``errors`` is usually the message itself.
+        if rendered and rendered != message:
+            parts.append(f'{key}: {rendered}')
+    if not parts:
+        return ''
+    text = ' | '.join(parts)
+    if len(text) > _HINT_TEXT_LIMIT:
+        text = text[:_HINT_TEXT_LIMIT].rstrip() + '…'
+    return text
+
+
+class ImmojumpAPIError(RuntimeError):
+    """Raised when the ImmoJUMP API returns an error response.
+
+    The rendered text is what the model gets to see, so it carries the
+    backend's hints (allowed values, valid field names, "did you mean …")
+    instead of just the headline message. ``payload`` keeps the untouched
+    response for callers that prefer to branch on data.
+    """
+
+    def __init__(self, status_code: int, message: str, payload: dict[str, Any] | None = None):
+        self.payload = payload or {}
+        hints = _render_hints(self.payload, message)
+        rendered = f'ImmoJUMP API error ({status_code}): {message}'
+        if hints:
+            rendered = f'{rendered} — {hints}'
+        super().__init__(rendered)
         self.status_code = status_code
         self.message = message
 
@@ -236,12 +293,17 @@ class ImmojumpAPIClient:
         response so callers can inspect headers (e.g. upload skip metadata)."""
         response = self._client.request(method, path, **kwargs)
         if response.status_code >= 400:
+            payload: dict[str, Any] = {}
             try:
-                payload = response.json()
-                message = payload.get('error') or payload.get('message') or str(payload)
+                parsed = response.json()
+                if isinstance(parsed, dict):
+                    payload = parsed
+                message = parsed.get('error') or parsed.get('message') or str(parsed)
             except Exception:
                 message = response.text
-            raise ImmojumpAPIError(response.status_code, message)
+            if not isinstance(message, str):
+                message = str(message)
+            raise ImmojumpAPIError(response.status_code, message, payload)
         return response
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
