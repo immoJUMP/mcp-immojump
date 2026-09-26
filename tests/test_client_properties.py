@@ -430,21 +430,39 @@ def test_documents_mark_reviewed_path():
 # Valuation
 # ---------------------------------------------------------------------------
 
-def test_valuation_request_body():
+def test_valuation_request_sends_only_the_property_id():
+    """The backend reads address, living space, type and year from the property.
+
+    The old body (``organisation_id`` + ``providers`` list) never matched the
+    backend schema, which answered every call with a 400.
+    """
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['method'] = req.method
+        captured['path'] = req.url.path
         captured['json'] = json.loads(req.read())
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.valuation_request(immobilie_id='imm-1', providers=['sprengnetter'])
+        client.valuation_request(immobilie_id='imm-1')
 
     assert captured['method'] == 'POST'
-    assert captured['json']['immobilie_id'] == 'imm-1'
-    assert captured['json']['organisation_id'] == 'org-1'
-    assert captured['json']['providers'] == ['sprengnetter']
+    assert captured['path'] == '/api/valuation/request'
+    assert captured['json'] == {'immobilie_id': 'imm-1'}
+
+
+def test_valuation_request_passes_provider_and_refresh():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        client.valuation_request(immobilie_id='imm-1', provider='fpre', force_refresh=True)
+
+    assert captured['json'] == {'immobilie_id': 'imm-1', 'provider': 'fpre', 'force_refresh': True}
 
 
 def test_valuation_history_path():

@@ -116,3 +116,23 @@ def test_truncated_hint_lists_stay_readable():
     text = str(excinfo.value)
     assert 'Wert0' in text
     assert len(text) < 1000, 'the rendered error must stay compact'
+
+
+def test_reason_behind_a_generic_headline_reaches_the_model():
+    """Valuation errors carry a generic ``error`` headline and the actual reason
+    in ``message`` plus a machine-readable ``code`` — e.g. FPRE refusing a
+    commercial property. The model must see both, or it retries blindly."""
+    payload = {
+        'error': 'Valuation Failed',
+        'message': 'FPRE bewertet nur Eigentumswohnungen, Einfamilien- und Mehrfamilienhäuser.',
+        'code': 'VALUATION_PROPERTY_TYPE_UNSUPPORTED',
+        'status_code': 422,
+    }
+    client = build_client(lambda request: httpx.Response(422, json=payload))
+
+    with pytest.raises(ImmojumpAPIError) as excinfo:
+        client._request('POST', '/api/valuation/request', json={'immobilie_id': 'imm-1'})
+
+    text = str(excinfo.value)
+    assert 'FPRE bewertet nur Eigentumswohnungen' in text
+    assert 'VALUATION_PROPERTY_TYPE_UNSUPPORTED' in text

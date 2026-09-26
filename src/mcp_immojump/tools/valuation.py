@@ -5,15 +5,26 @@ def register(mcp):
     @mcp.tool(annotations=write_op())
     def valuation_request(
         immobilie_id,
+        provider=None,
+        force_refresh=False,
         token=None,
         organisation_id=None,
-        providers=None,
         base_url=None,
     ):
-        """Request a property valuation from external providers.
+        """Request a market valuation (market value + market rent) for a property.
 
-        - providers: optional list of provider names to use.
+        Only the property id is needed: the server reads address, living space
+        (sum of the units), property type and construction year from the property.
+
+        - provider: one provider per call, 'geomap' (default) or 'fpre'.
           Call valuation_providers to see available options.
+        - force_refresh: false (default) returns a recent cached valuation;
+          true requests a new, billable valuation from the provider.
+
+        Errors carry a German reason to pass on to the user plus a code, e.g.
+        VALUATION_PROPERTY_TYPE_UNSUPPORTED (FPRE only values apartments,
+        single- and multi-family houses) or VALUATION_INPUT_INCOMPLETE (address
+        or living space missing — complete the property first).
         """
 
         result = _call_with_client(
@@ -21,7 +32,7 @@ def register(mcp):
             token=token,
             organisation_id=organisation_id,
             callback=lambda client: client.valuation_request(
-                immobilie_id=immobilie_id, providers=providers,
+                immobilie_id=immobilie_id, provider=provider, force_refresh=force_refresh,
             ),
         )
         return _ok(result)
