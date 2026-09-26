@@ -134,7 +134,12 @@ def _normalize_activity_payload(payload: dict[str, Any]) -> None:
 #: Keys the backend adds to a validation error so the caller can fix the call
 #: itself, in the order they help most: what was wrong, what to write instead,
 #: which values are allowed. See ``modules/utils/validation_errors.py``.
-_HINT_KEYS = ('errors', 'error', 'field_suggestions', 'valid_values', 'valid_fields')
+#: ``message`` matters when ``error`` is only a generic headline ("Valuation
+#: Failed") and the reason sits next to it; ``code`` lets the model branch on
+#: a stable reason (e.g. ``VALUATION_PROPERTY_TYPE_UNSUPPORTED``).
+_HINT_KEYS = (
+    'message', 'errors', 'error', 'field_suggestions', 'valid_values', 'valid_fields', 'code',
+)
 
 #: Rendered hints are read by a model, so they compete with everything else in
 #: its context. Long enum lists get cut rather than allowed to bury the message.
@@ -1619,13 +1624,20 @@ class ImmojumpAPIClient:
     # Valuation
     # ------------------------------------------------------------------
 
-    def valuation_request(self, *, immobilie_id: str, providers: list[str] | None = None) -> Any:
-        payload: dict[str, Any] = {
-            'immobilie_id': immobilie_id,
-            'organisation_id': self.credentials.organisation_id,
-        }
-        if providers:
-            payload['providers'] = providers
+    def valuation_request(
+        self,
+        *,
+        immobilie_id: str,
+        provider: str | None = None,
+        force_refresh: bool = False,
+    ) -> Any:
+        # Address, living space, property type and year come from the property
+        # itself — the backend reads them server-side.
+        payload: dict[str, Any] = {'immobilie_id': immobilie_id}
+        if provider:
+            payload['provider'] = provider
+        if force_refresh:
+            payload['force_refresh'] = True
         return self._request('POST', '/api/valuation/request', json=payload)
 
     def valuation_history(self, *, immobilie_id: str) -> Any:
