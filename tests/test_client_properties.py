@@ -471,3 +471,33 @@ def test_valuation_providers_path():
         client.valuation_providers()
 
     assert captured['path'] == '/api/valuation/providers'
+
+
+def test_property_intelligence_uses_shared_authorised_backend_routes():
+    captured = []
+
+    def handler(req):
+        captured.append((req.method, req.url.path, json.loads(req.read()) if req.read() else None))
+        return httpx.Response(200, json={"profile_match": {"status": "unknown"}})
+
+    with _capture_client(handler) as client:
+        client.property_intelligence_get(immobilie_id="imm-1")
+        client.property_intelligence_settings(immobilie_id="imm-1", data={"phase": "purchase"})
+        client.property_intelligence_decide(
+            immobilie_id="imm-1",
+            data={
+                "outcome": "reject",
+                "reason": "renovation",
+                "request_id": "00000000-0000-0000-0000-000000000002",
+            },
+        )
+        client.property_intelligence_analyze(immobilie_id="imm-1")
+    assert captured[0] == ("GET", "/api/immobilien/imm-1/intelligence", None)
+    assert captured[1] == (
+        "PUT",
+        "/api/immobilien/imm-1/intelligence/settings",
+        {"phase": "purchase"},
+    )
+    assert captured[2][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/decisions")
+    assert captured[2][2]["request_id"] == "00000000-0000-0000-0000-000000000002"
+    assert captured[3][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/analyze")
