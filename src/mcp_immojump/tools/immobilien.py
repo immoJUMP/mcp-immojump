@@ -3,6 +3,66 @@ from .._shared import _call_with_client, _ok, _require_dict, destructive_op, rea
 
 def register(mcp):
     @mcp.tool(annotations=read_only())
+    def property_intelligence_get(immobilie_id, token=None, organisation_id=None, base_url=None):
+        """Load the investor overview: chosen profile, missing documents, opportunities, risks and
+        preferences."""
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.property_intelligence_get(immobilie_id=immobilie_id),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=write_op())
+    def property_intelligence_settings(
+        immobilie_id, data, token=None, organisation_id=None, base_url=None
+    ):
+        """Update personal profile_id, phase, checklist status or extra_categories; business rules
+        stay in the backend."""
+        payload = _require_dict(field_name="data", value=data)
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.property_intelligence_settings(
+                immobilie_id=immobilie_id, data=payload
+            ),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=write_op())
+    def property_intelligence_decide(
+        immobilie_id, data, token=None, organisation_id=None, base_url=None
+    ):
+        """Record an explicit customer decision: outcome pursue/hold/reject, reason
+        renovation/location/price/yield/other and UUID request_id. Never infer consent."""
+        payload = _require_dict(field_name="data", value=data)
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.property_intelligence_decide(
+                immobilie_id=immobilie_id, data=payload
+            ),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=write_op())
+    def property_intelligence_analyze(
+        immobilie_id, token=None, organisation_id=None, base_url=None
+    ):
+        """Request a deeper source-grounded assessment. Consumes an AI analysis allowance; may take
+        45 seconds."""
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.property_intelligence_analyze(immobilie_id=immobilie_id),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=read_only())
     def immobilien_list(
         token=None,
         organisation_id=None,
