@@ -380,6 +380,18 @@ class ImmojumpAPIClient:
             params={'organisation_id': self.credentials.organisation_id},
         )
 
+    def property_intelligence_get(self, *, immobilie_id: str) -> Any:
+        return self._request('GET', f'/api/immobilien/{immobilie_id}/intelligence')
+
+    def property_intelligence_settings(self, *, immobilie_id: str, data: dict) -> Any:
+        return self._request('PUT', f'/api/immobilien/{immobilie_id}/intelligence/settings', json=data)
+
+    def property_intelligence_decide(self, *, immobilie_id: str, data: dict) -> Any:
+        return self._request('POST', f'/api/immobilien/{immobilie_id}/intelligence/decisions', json=data)
+
+    def property_intelligence_analyze(self, *, immobilie_id: str) -> Any:
+        return self._request('POST', f'/api/immobilien/{immobilie_id}/intelligence/analyze')
+
     def immobilien_get(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/v2/immobilien/{immobilie_id}')
 

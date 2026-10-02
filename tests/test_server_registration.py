@@ -15,17 +15,17 @@ def _tool_names(mcp_instance) -> set[str]:
 
 def test_standard_server_tool_count():
     from mcp_immojump.servers.standard import mcp
-    assert _tool_count(mcp) == 89
+    assert _tool_count(mcp) == 93
 
 
 def test_profi_server_tool_count():
     from mcp_immojump.servers.profi import mcp
-    assert _tool_count(mcp) == 133
+    assert _tool_count(mcp) == 137
 
 
 def test_full_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 174
+    assert _tool_count(mcp) == 178
 
 
 def test_standard_is_subset_of_profi():
@@ -89,7 +89,7 @@ def test_every_tier_includes_connection_test():
 
 def test_properties_server_tool_count():
     from mcp_immojump.servers.properties import mcp
-    assert _tool_count(mcp) == 41
+    assert _tool_count(mcp) == 45
 
 
 def test_crm_server_tool_count():
@@ -137,3 +137,18 @@ def test_domain_servers_cover_all_full_tools():
     union = _tool_names(p) | _tool_names(c) | _tool_names(pl) | _tool_names(o)
     mono_names = _tool_names(mono)
     assert union == mono_names, f'Missing: {mono_names - union}, Extra: {union - mono_names}'
+
+
+def test_intelligence_is_available_in_every_property_tier():
+    from mcp_immojump.servers.standard import mcp as std
+    from mcp_immojump.servers.profi import mcp as pro
+    from mcp_immojump.servers.properties import mcp as props
+    from mcp_immojump.server import mcp as full
+
+    for server in [std, pro, props, full]:
+        assert {
+            "property_intelligence_get",
+            "property_intelligence_settings",
+            "property_intelligence_decide",
+            "property_intelligence_analyze",
+        } <= _tool_names(server)
