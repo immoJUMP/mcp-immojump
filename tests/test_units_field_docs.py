@@ -2,11 +2,15 @@
 
 POST /api/units/unit/<immobilie_id> and PUT /api/units/unit/<unit_id> read
 einheit, livingspace, ist_rent, soll_rent, soll_rent2, rooms, type, note,
-order, lease_start_date and last_rent_increase_date. Every other key is
-dropped without an error. The descriptions used to advertise name,
-wohnflaeche, miete_kalt, miete_ist, zimmer, stockwerk, leerstand and
-unit_type — an agent following them got HTTP 201 and a unit with neither
-area nor rent, and immobilien_split_units priced every split-off unit at 0.
+order, lease_start_date and last_rent_increase_date. The descriptions used
+to advertise name, wohnflaeche, miete_kalt, miete_ist, zimmer, stockwerk,
+leerstand and unit_type — an agent following them got HTTP 201 and a unit
+with neither area nor rent, because the backend dropped unknown keys, and
+immobilien_split_units priced every split-off unit at 0.
+
+Since immo-calc fix/unit-routes-feldpruefung the backend rejects unknown keys
+with HTTP 400 (valid_fields, field_suggestions) and an unknown type with
+valid_values. The description must say so instead of promising silence.
 
 The unit tools also have to warn about the empty default unit "Einheit 1"
 that the backend adds to every new property: split along with the real
@@ -68,6 +72,14 @@ def test_unit_write_tools_no_longer_advertise_ignored_keys(tools, tool_name) -> 
     description = tools[tool_name].description
     advertised = [key for key in IGNORED_KEYS if key in description]
     assert not advertised, f'{tool_name} still advertises ignored keys {advertised}'
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+def test_unit_write_tools_say_unknown_keys_are_rejected(tools, tool_name) -> None:
+    description = tools[tool_name].description
+    assert 'ignored without an error' not in description
+    assert '400' in description
+    assert 'valid_fields' in description
 
 
 def _field_line(description: str, field: str) -> str:
