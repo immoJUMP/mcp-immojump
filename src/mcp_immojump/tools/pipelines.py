@@ -90,7 +90,15 @@ def register(mcp):
         regenerate_inbound_email_prefix=None,
         base_url=None,
     ):
-        """Update an existing pipeline."""
+        """Update an existing pipeline (name, order, inbound address).
+
+        - entity_type: switching the type needs an organisation admin and only
+          works while every status of the pipeline already has the new type
+          (an empty pipeline, or repairing one whose statuses were created for
+          that type). Otherwise the API answers 400 and nothing changes --
+          create a new pipeline of the wanted type instead. Sending the
+          pipeline's current type is not a switch and is always fine.
+        """
 
         payload: dict[str, Any] = {}
         if name is not None:

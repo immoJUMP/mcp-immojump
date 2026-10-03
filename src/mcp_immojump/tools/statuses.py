@@ -26,7 +26,13 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update status fields."""
+        """Update status fields: name, order, pipeline_id.
+
+        - pipeline_id moves the status into another pipeline. Only within
+          the same organisation and the same entity type -- anything else is
+          answered with 400. Properties, contacts, activity templates and
+          inbound addresses of the status move with it.
+        """
 
         payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
