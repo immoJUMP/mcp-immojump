@@ -202,11 +202,14 @@ def test_units_create_path_and_body():
         return httpx.Response(201, json={})
 
     with _capture_client(handler) as client:
-        client.units_create(immobilie_id='imm-1', data={'name': 'WE1', 'wohnflaeche': 60})
+        client.units_create(
+            immobilie_id='imm-1',
+            data={'einheit': 'WE 1', 'livingspace': 60, 'ist_rent': 540},
+        )
 
     assert captured['method'] == 'POST'
     assert captured['path'] == '/api/units/unit/imm-1'
-    assert captured['json']['name'] == 'WE1'
+    assert captured['json'] == {'einheit': 'WE 1', 'livingspace': 60, 'ist_rent': 540}
 
 
 def test_units_update_path():
@@ -218,7 +221,7 @@ def test_units_update_path():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.units_update(unit_id='u-1', data={'wohnflaeche': 80})
+        client.units_update(unit_id='u-1', data={'livingspace': 80})
 
     assert captured['method'] == 'PUT'
     assert captured['path'] == '/api/units/unit/u-1'
