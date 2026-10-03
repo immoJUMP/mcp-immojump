@@ -160,9 +160,14 @@ def register(mcp):
     ):
         """Create a new property.
 
-        data must include at minimum: title or address fields.
-        Common fields: title, strasse, hausnummer, plz, ort, kaufpreis,
-        wohnflaeche, grundstuecksflaeche, baujahr, zimmer.
+        data fields (all optional; other top-level keys are ignored):
+        - name: display name, defaults to daten.adresse
+        - type: property type code, one of ETW, EFH, MFH, WGH, GEW, Sonstiges
+          (default ETW). German labels such as "Mehrfamilienhaus" are accepted;
+          anything else is rejected with HTTP 400 and valid_values.
+        - daten: the property data, e.g. {"adresse": "Roermonder Str. 15,
+          52072 Aachen", "kaufpreis": 380000, "baujahr": 1965}
+        - status_id: pipeline status to place the property in
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -208,6 +213,8 @@ def register(mcp):
 
         Only include the fields you want to modify, e.g.
         {"kaufpreis": 350000, "wohnflaeche": 85}
+        type takes the property type code ETW, EFH, MFH, WGH, GEW or Sonstiges
+        (German labels such as "Gewerbe" are accepted).
         """
 
         payload = _require_dict(field_name='data', value=data)
