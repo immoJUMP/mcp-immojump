@@ -70,7 +70,8 @@ def register(mcp):
         - soll_rent: first target-rent scenario per month (defaults to ist_rent)
         - soll_rent2: second target-rent scenario per month (defaults to soll_rent)
         - note: free text, e.g. tenant name or vacancy
-        - order: sort position in the rent roll (default 0)
+        - order: sort position in the rent roll; leave it out to append the
+          unit at the end, after "Einheit 1"
         - lease_start_date, last_rent_increase_date: YYYY-MM-DD or DD.MM.YYYY
         """
 
