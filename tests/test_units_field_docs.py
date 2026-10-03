@@ -137,3 +137,12 @@ def test_units_create_reuses_the_default_unit(tools) -> None:
     description = tools['units_create'].description
     assert 'Einheit 1' in description
     assert 'units_update' in description
+
+
+def test_units_create_order_defaults_to_the_end_of_the_rent_roll(tools) -> None:
+    """Without order, POST /api/units/unit/<id> appends the unit after the existing ones
+    (max(order)+1, immo-calc PR "neue Einheiten ohne order hinten anhängen"). The old
+    "default 0" made agents expect the unit in front of "Einheit 1"."""
+    line = _field_line(tools['units_create'].description, 'order')
+    assert 'default 0' not in line
+    assert 'end' in line
