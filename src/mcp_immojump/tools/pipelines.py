@@ -65,6 +65,8 @@ def register(mcp):
         """Create a pipeline.
 
         - entity_type: immobilie, contact, or deal (default: immobilie)
+        - Needs an organisation admin, like adding statuses. Any other member
+          gets 403 and nothing is created -- ask an admin instead of retrying.
         """
 
         payload: dict[str, Any] = {'name': name, 'entity_type': entity_type}
@@ -125,7 +127,14 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Delete a pipeline."""
+        """Delete a pipeline.
+
+        - Needs an organisation admin. Any other member gets 403 and nothing
+          changes -- ask an admin instead of retrying.
+        - Irreversible: every property/contact in the pipeline is detached
+          from its status, the statuses and their activity templates are
+          deleted. Export the pipeline first if it might be needed again.
+        """
 
         result = _call_with_client(
             base_url=base_url,
