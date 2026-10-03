@@ -60,7 +60,9 @@ def register(mcp):
         units_list): put the first unit there with units_update instead of
         creating a second one next to it.
 
-        data fields (all optional; any other key is ignored without an error):
+        data fields (all optional). Any other key is rejected with HTTP 400:
+        valid_fields lists the accepted names, field_suggestions names the
+        right field for a near miss. An unknown type returns valid_values.
         - einheit: unit name, e.g. "WE 1" or "EG links"
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
@@ -95,7 +97,10 @@ def register(mcp):
 
         Only include the fields you want to change, e.g.
         {"ist_rent": 720, "note": "Mieterhöhung 2026"}. Any other key is
-        ignored without an error. Fields:
+        rejected with HTTP 400 (valid_fields, field_suggestions); an unknown
+        type returns valid_values. Fields of the unit response (id,
+        immobilie_id, source, ...) may be sent back unchanged and are not
+        written. Fields:
         - einheit: unit name
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
