@@ -100,7 +100,17 @@ def register(mcp):
         - start_in_days: integer — auto-set start date N days after creation
         - end_in_days: integer — auto-set due date N days after creation
         - decision_question: string (required when mode=decision)
-        - outcomes: list of outcome objects for decision workflows
+        - outcomes: list of {key, label, actions}; actions:
+          - {"type": "STATUS_CHANGE", "target_status_id": <int>}
+          - {"type": "CREATE_ACTIVITY", "template_id": "<uuid>"} or
+            {"type": "CREATE_ACTIVITY", "title": "..."} (inline task)
+        - next_activity_template_id: UUID of the follow-up template (chain)
+
+        target_status_id, template_id and next_activity_template_id must belong
+        to the SAME organisation as the template: take status IDs from
+        pipeline_statuses_list and template IDs from earlier create responses.
+        IDs of other organisations are rejected exactly like unknown IDs
+        (HTTP 400, message ends with "nicht gefunden.").
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -126,6 +136,12 @@ def register(mcp):
         - `replace_outcomes` (bool, optional): default false, merge by outcome.id.
         - `if_updated_at` (string, optional): optimistic concurrency guard (409 on mismatch).
         - `dry_run` (bool, optional): return diff preview without persisting.
+
+        Same reference rule as activity_template_create: target_status_id,
+        template_id and next_activity_template_id must belong to the template's
+        organisation (HTTP 400 "... nicht gefunden." otherwise). Moving a
+        template into another organisation's status is rejected while its
+        saved outcomes still point into the old organisation.
         """
 
         payload = _require_dict(field_name='data', value=data)

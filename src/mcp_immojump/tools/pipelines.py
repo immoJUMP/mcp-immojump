@@ -160,7 +160,14 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Import a pipeline definition from YAML string or JSON object."""
+        """Import a pipeline definition from YAML string or JSON object.
+
+        Outcome references are remapped onto the newly created statuses and
+        templates (target_status_ref / template_ref from pipeline_export, or
+        matching status names). Anything that still points outside the
+        importing organisation is dropped: the action stays, without target.
+        Every status takes the entity_type of the pipeline.
+        """
 
         if not isinstance(payload, (dict, str)):
             raise ValueError('payload must be an object or yaml string')
