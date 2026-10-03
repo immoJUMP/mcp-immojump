@@ -1,4 +1,4 @@
-from .._shared import _call_with_client, _ok, _require_dict, destructive_op, read_only, write_op
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
 
 
 def register(mcp):
@@ -115,24 +115,29 @@ def register(mcp):
         return _ok(result)
 
     @mcp.tool(annotations=write_op())
-    def immobilien_update(
+    def immobilien_update_status(
         immobilie_id,
-        data,
+        status_id,
         token=None,
         organisation_id=None,
         base_url=None,
     ):
-        """Full update of a property (PUT -- replaces all fields).
+        """Move a property to another pipeline status, or take it out of the pipeline.
 
-        Provide the complete property object in data.
+        status_id: integer ID of the target status (use pipeline_statuses_list
+        to find valid status IDs for a pipeline); null removes the property
+        from its pipeline. Changes nothing but the status -- property fields
+        go through immobilien_patch.
         """
 
-        payload = _require_dict(field_name='data', value=data)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.immobilien_update(immobilie_id=immobilie_id, data=payload),
+            callback=lambda client: client.immobilien_update_status(
+                immobilie_id=immobilie_id,
+                status_id=status_id,
+            ),
         )
         return _ok(result)
 
@@ -145,6 +150,8 @@ def register(mcp):
         base_url=None,
     ):
         """Partial update of a property (PATCH -- only provided fields change).
+        Does not move the property in the pipeline: a status_id sent here only
+        lands in the property data. Use immobilien_update_status for that.
 
         Only include the fields you want to modify, e.g.
         {"kaufpreis": 350000, "wohnflaeche": 85}
@@ -237,19 +244,31 @@ def register(mcp):
     @mcp.tool(annotations=write_op())
     def immobilien_split_units(
         immobilie_id,
+        unit_ids,
+        target_type=None,
         token=None,
         organisation_id=None,
         base_url=None,
     ):
-        """Split a multi-family property into separate individual properties.
+        """Split units of a multi-family property (type MFH) into separate properties.
 
-        Each unit becomes its own Immobilie. The original MFH is preserved.
+        - unit_ids: list of unit IDs to split off (units_list shows them); each
+          becomes its own property with a copy of the data, tags and status
+        - target_type: property type of the new properties, one of ETW, EFH,
+          MFH, WGH, GEW, Sonstiges (default ETW)
+
+        The original MFH stays unchanged. Returns the created properties.
         """
 
+        ids = _require_list(field_name='unit_ids', value=unit_ids)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.immobilien_split_units(immobilie_id=immobilie_id),
+            callback=lambda client: client.immobilien_split_units(
+                immobilie_id=immobilie_id,
+                unit_ids=ids,
+                target_type=target_type,
+            ),
         )
         return _ok(result)
