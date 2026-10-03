@@ -146,3 +146,16 @@ def test_units_create_order_defaults_to_the_end_of_the_rent_roll(tools) -> None:
     line = _field_line(tools['units_create'].description, 'order')
     assert 'default 0' not in line
     assert 'end' in line
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+def test_unit_write_tools_ask_for_a_decimal_point(tools, tool_name) -> None:
+    """Agents copy "62,5" from German exposés; the backend rejects it with 400.
+
+    Since immo-calc fix/unit-routes-datum-zahl an unreadable number or date is
+    a 400 (before: a 500 for "62,5", and a silently cleared date for
+    "März 2024"). The comma is deliberately not reinterpreted.
+    """
+    description = tools[tool_name].description
+    assert '62.5' in description
+    assert '"62,5"' in description

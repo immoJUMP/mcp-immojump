@@ -63,6 +63,9 @@ def register(mcp):
         data fields (all optional). Any other key is rejected with HTTP 400:
         valid_fields lists the accepted names, field_suggestions names the
         right field for a near miss. An unknown type returns valid_values.
+        Numbers are JSON numbers with a decimal point (62.5, not "62,5");
+        an unreadable number or date is rejected with HTTP 400 and the field
+        named in errors, nothing is written.
         - einheit: unit name, e.g. "WE 1" or "EG links"
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
@@ -72,8 +75,8 @@ def register(mcp):
         - soll_rent: first target-rent scenario per month (defaults to ist_rent)
         - soll_rent2: second target-rent scenario per month (defaults to soll_rent)
         - note: free text, e.g. tenant name or vacancy
-        - order: sort position in the rent roll; leave it out to append the
-          unit at the end, after "Einheit 1"
+        - order: sort position in the rent roll, a whole number; leave it out to
+          append the unit at the end, after "Einheit 1"
         - lease_start_date, last_rent_increase_date: YYYY-MM-DD or DD.MM.YYYY
         """
 
@@ -99,7 +102,9 @@ def register(mcp):
         Only include the fields you want to change, e.g.
         {"ist_rent": 720, "note": "Mieterhöhung 2026"}. Any other key is
         rejected with HTTP 400 (valid_fields, field_suggestions); an unknown
-        type returns valid_values. Fields of the unit response (id,
+        type returns valid_values. Numbers are JSON numbers with a decimal
+        point (62.5, not "62,5"); an unreadable number or date returns 400
+        and changes nothing. Fields of the unit response (id,
         immobilie_id, source, ...) may be sent back unchanged and are not
         written. Fields:
         - einheit: unit name
