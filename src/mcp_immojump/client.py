@@ -400,8 +400,11 @@ class ImmojumpAPIClient:
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         return self._request('POST', '/api/v2/immobilien', json=payload)
 
-    def immobilien_update(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/v2/immobilien/{immobilie_id}', json=data)
+    def immobilien_update_status(self, *, immobilie_id: str, status_id: int | str | None) -> Any:
+        # PUT on the property reads nothing but status_id; null clears the
+        # status, a missing key is rejected with 400. Fields go through PATCH.
+        payload = {'status_id': int(status_id) if status_id is not None else None}
+        return self._request('PUT', f'/api/v2/immobilien/{immobilie_id}', json=payload)
 
     def immobilien_patch(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
         return self._request('PATCH', f'/api/v2/immobilien/{immobilie_id}', json=data)
@@ -422,8 +425,17 @@ class ImmojumpAPIClient:
     def immobilien_contacts(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/v2/immobilien/{immobilie_id}/contacts')
 
-    def immobilien_split_units(self, *, immobilie_id: str) -> Any:
-        return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units')
+    def immobilien_split_units(
+        self,
+        *,
+        immobilie_id: str,
+        unit_ids: list[str],
+        target_type: str | None = None,
+    ) -> Any:
+        payload: dict[str, Any] = {'unit_ids': list(unit_ids)}
+        if target_type:
+            payload['target_type'] = target_type
+        return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units', json=payload)
 
     # ------------------------------------------------------------------
     # Contacts – CRUD
