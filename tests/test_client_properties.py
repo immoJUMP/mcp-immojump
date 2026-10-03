@@ -147,19 +147,71 @@ def test_immobilien_transfer_body():
     assert captured['json']['target_organisation_id'] == 'org-2'
 
 
-def test_immobilien_split_units_path():
+def test_immobilien_update_status_sends_only_the_status_id():
+    """PUT /api/v2/immobilien/<id> reads nothing but status_id.
+
+    The former immobilien_update sent a whole property object there: every
+    field was dropped, and without status_id the backend cleared the status.
+    """
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['method'] = req.method
         captured['path'] = req.url.path
-        return httpx.Response(200, json={})
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={'id': 'imm-1'})
 
     with _capture_client(handler) as client:
-        client.immobilien_split_units(immobilie_id='imm-1')
+        client.immobilien_update_status(immobilie_id='imm-1', status_id='42')
+
+    assert captured['method'] == 'PUT'
+    assert captured['path'] == '/api/v2/immobilien/imm-1'
+    assert captured['json'] == {'status_id': 42}
+
+
+def test_immobilien_update_status_none_takes_the_property_out_of_the_pipeline():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={'id': 'imm-1'})
+
+    with _capture_client(handler) as client:
+        client.immobilien_update_status(immobilie_id='imm-1', status_id=None)
+
+    # An explicit null — a missing key is rejected with HTTP 400.
+    assert captured['json'] == {'status_id': None}
+
+
+def test_immobilien_split_units_sends_unit_ids_and_target_type():
+    """Without unit_ids the backend answers 400 — the tool used to send no body at all."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['method'] = req.method
+        captured['path'] = req.url.path
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json=[])
+
+    with _capture_client(handler) as client:
+        client.immobilien_split_units(immobilie_id='imm-1', unit_ids=['u-1', 'u-2'], target_type='ETW')
 
     assert captured['method'] == 'POST'
     assert captured['path'] == '/api/v2/immobilien/imm-1/split-units'
+    assert captured['json'] == {'unit_ids': ['u-1', 'u-2'], 'target_type': 'ETW'}
+
+
+def test_immobilien_split_units_leaves_the_default_type_to_the_backend():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json=[])
+
+    with _capture_client(handler) as client:
+        client.immobilien_split_units(immobilie_id='imm-1', unit_ids=['u-1'])
+
+    assert captured['json'] == {'unit_ids': ['u-1']}
 
 
 def test_immobilien_contacts_path():
