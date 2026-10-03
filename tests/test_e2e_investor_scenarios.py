@@ -200,21 +200,23 @@ class TestAlltag:
 class TestAnkauf:
     def test_create_immobilie(self, mcp):
         """'Lege ein neues Objekt an: MFH, Aachen, Roermonder Str. 15, 380k'"""
+        # POST reads name, type, daten and status_id; other top-level keys
+        # (title, strasse, immobilie_type, ...) used to be dropped silently.
         resp = mcp.call_tool('immobilien_create', {
             'data': {
-                'title': 'E2E Test MFH Aachen',
-                'strasse': 'Roermonder Str.',
-                'hausnummer': '15',
-                'plz': '52072',
-                'ort': 'Aachen',
-                'kaufpreis': 380000,
-                'immobilie_type': 'MFH',
+                'name': 'E2E Test MFH Aachen',
+                'type': 'MFH',
+                'daten': {
+                    'adresse': 'Roermonder Str. 15, 52072 Aachen',
+                    'kaufpreis': 380000,
+                },
             },
         })
         result = mcp.tool_result(resp)
         assert result['ok'] is True
         immo = result['result']
         assert 'id' in immo
+        assert immo['type'] == 'MFH'
         print(f"  → Immobilie erstellt: {immo['id']}")
         self.__class__._immo_id = immo['id']
 
