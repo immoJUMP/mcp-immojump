@@ -150,8 +150,9 @@ def register(mcp):
         base_url=None,
     ):
         """Partial update of a property (PATCH -- only provided fields change).
-        Does not move the property in the pipeline: a status_id sent here only
-        lands in the property data. Use immobilien_update_status for that.
+        Does not move the property in the pipeline: status_id or status in data
+        is rejected with 400 (code STATUS_VIA_PUT) and nothing is changed. Use
+        immobilien_update_status for that.
 
         Only include the fields you want to modify, e.g.
         {"kaufpreis": 350000, "wohnflaeche": 85}
