@@ -170,7 +170,7 @@ class TestAlltag:
 
     def test_deals_by_status(self, mcp):
         """'Welche Deals sind im Notartermin?'"""
-        resp = mcp.call_tool('deals_list', {'per_page': 5})
+        resp = mcp.call_tool('deals_list', {})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
         print("  → Deals geladen")

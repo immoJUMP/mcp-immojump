@@ -30,8 +30,13 @@ def register(mcp):
     ):
         """List tickets (Kanban cards) with pagination and optional filters.
 
-        - status: ticket status name string (use tickets_statuses to get valid values)
-        - search: free-text query
+        - status: status slug or name, case-insensitive (e.g. "in_progress";
+          use tickets_statuses for valid values). An unknown status is
+          rejected with HTTP 400 that lists the valid ones.
+        - search: free text, matched case-insensitively against ticket title
+          and description
+
+        Response: {items, total, page, per_page}; per_page is capped at 100.
         """
 
         result = _call_with_client(

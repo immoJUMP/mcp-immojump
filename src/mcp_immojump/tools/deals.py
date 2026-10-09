@@ -6,18 +6,22 @@ def register(mcp):
     def deals_list(
         token=None,
         organisation_id=None,
-        page=1,
-        per_page=25,
         pipeline_id=None,
         status_id=None,
         search=None,
         base_url=None,
     ):
-        """List deals with pagination and optional filters.
+        """List all deals of the organisation, optionally filtered.
+
+        Not paginated: returns every matching deal as a list. Narrow the
+        result with the filters instead (they combine with AND).
 
         - pipeline_id: integer ID of a pipeline (use pipeline_list)
         - status_id: integer ID of a pipeline status (use pipeline_statuses_list)
-        - search: free-text query
+        - search: free text, matched case-insensitively against deal name and
+          description
+
+        A non-integer pipeline_id/status_id is rejected with HTTP 400.
         """
 
         result = _call_with_client(
@@ -25,8 +29,6 @@ def register(mcp):
             token=token,
             organisation_id=organisation_id,
             callback=lambda client: client.deals_list(
-                page=int(page),
-                per_page=int(per_page),
                 pipeline_id=pipeline_id,
                 status_id=status_id,
                 search=search,

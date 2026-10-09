@@ -37,6 +37,33 @@ def test_deals_list_path_and_params():
     assert captured['params']['search'] == 'Berlin'
 
 
+def test_deals_list_sends_no_pagination():
+    """/api/deals is not paginated — sending page/per_page would suggest a
+    capped result that the backend never applies."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json=[])
+
+    with _capture_client(handler) as client:
+        client.deals_list()
+
+    assert captured['params'] == {'organisation_id': 'org-1'}
+
+
+def test_deals_list_tool_has_no_pagination_args():
+    import inspect
+
+    from mcp_immojump.server import mcp
+
+    fn = mcp._tool_manager._tools['deals_list'].fn
+    params = inspect.signature(fn).parameters
+    assert 'page' not in params
+    assert 'per_page' not in params
+    assert {'pipeline_id', 'status_id', 'search'} <= set(params)
+
+
 def test_deals_get_path():
     captured = {}
 
@@ -109,6 +136,26 @@ def test_tickets_list_path():
         client.tickets_list(status='open')
 
     assert captured['path'] == '/api/tickets'
+
+
+def test_tickets_list_sends_backend_filter_names():
+    """Backend (GET /api/tickets) reads exactly `status` and `search`."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json={'items': [], 'total': 0, 'page': 2, 'per_page': 10})
+
+    with _capture_client(handler) as client:
+        client.tickets_list(page=2, per_page=10, status='in_progress', search='Heizung')
+
+    assert captured['params'] == {
+        'organisation_id': 'org-1',
+        'page': '2',
+        'per_page': '10',
+        'status': 'in_progress',
+        'search': 'Heizung',
+    }
 
 
 def test_tickets_create_excludes_org_from_body():

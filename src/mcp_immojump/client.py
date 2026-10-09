@@ -802,16 +802,14 @@ class ImmojumpAPIClient:
     def deals_list(
         self,
         *,
-        page: int = 1,
-        per_page: int = 25,
         pipeline_id: str | None = None,
         status_id: str | None = None,
         search: str | None = None,
     ) -> Any:
+        # /api/deals is not paginated: it returns every matching deal as a
+        # plain list, so we deliberately send no page/per_page.
         params: dict[str, Any] = {
             'organisation_id': self.credentials.organisation_id,
-            'page': page,
-            'per_page': per_page,
         }
         if pipeline_id:
             params['pipeline_id'] = pipeline_id
