@@ -41,14 +41,20 @@ def register(mcp):
         - tag_ids: list of tag IDs to filter by
         """
 
+        # Local import keeps the module's import line untouched (parallel PRs).
+        from .._shared import _id_list
+
+        status_list = _id_list(field_name='status_ids', value=status_ids) if status_ids else None
+        tag_list = _id_list(field_name='tag_ids', value=tag_ids) if tag_ids else None
+
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
             callback=lambda client: client.immobilien_search(
                 search=search,
-                status_ids=status_ids,
-                tag_ids=tag_ids,
+                status_ids=status_list,
+                tag_ids=tag_list,
                 page=int(page),
                 per_page=int(per_page),
             ),

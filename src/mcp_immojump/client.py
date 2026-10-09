@@ -362,10 +362,13 @@ class ImmojumpAPIClient:
         }
         if search:
             params['search'] = search
+        # The route reads both filters with request.args.getlist, i.e. as
+        # repeated parameters (?status_ids=1&status_ids=2). A comma-joined
+        # value is one unknown ID and filters everything out.
         if status_ids:
-            params['status_ids'] = ','.join(str(s) for s in status_ids)
+            params['status_ids'] = [str(s) for s in status_ids]
         if tag_ids:
-            params['tag_ids'] = ','.join(str(t) for t in tag_ids)
+            params['tag_ids'] = [str(t) for t in tag_ids]
         return self._request('GET', '/api/v2/immobilien/search', params=params)
 
     def immobilien_count(self) -> Any:
@@ -456,7 +459,7 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/contacts/bulk-delete',
-            json={'contact_ids': contact_ids},
+            json={'ids': contact_ids},
         )
 
     def contacts_get_immobilien(self, *, contact_id: str) -> Any:
@@ -472,8 +475,8 @@ class ImmojumpAPIClient:
             params={'organisation_id': self.credentials.organisation_id},
         )
 
-    def contacts_merge_restore(self, *, merge_id: str) -> Any:
-        return self._request('POST', '/api/contacts/merge/restore', json={'merge_id': merge_id})
+    def contacts_merge_restore(self, *, log_id: str) -> Any:
+        return self._request('POST', '/api/contacts/merge/restore', json={'log_id': log_id})
 
     # ------------------------------------------------------------------
     # Contacts – Import (existing)
@@ -652,7 +655,7 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/activities/structure-description',
-            json={'text': text, 'organisation_id': self.credentials.organisation_id},
+            json={'description': text},
         )
 
     def activities_calendar_generate_link(self) -> Any:
@@ -867,27 +870,16 @@ class ImmojumpAPIClient:
     # Documents
     # ------------------------------------------------------------------
 
-    def documents_list(
-        self,
-        *,
-        immobilie_id: str | None = None,
-        page: int = 1,
-        per_page: int = 25,
-    ) -> Any:
-        params: dict[str, Any] = {
-            'organisation_id': self.credentials.organisation_id,
-            'page': page,
-            'per_page': per_page,
-        }
-        if immobilie_id:
-            params['immobilie_id'] = immobilie_id
-        return self._request('GET', '/api/documents/documents', params=params)
+    def documents_list(self, *, immobilie_id: str) -> Any:
+        # The route lists the documents of exactly one property (immobilien_id,
+        # required) and has no pagination.
+        return self._request('GET', '/api/documents/documents', params={'immobilien_id': immobilie_id})
 
     def documents_delete(self, *, document_id: str) -> Any:
         return self._request('DELETE', f'/api/documents/documents/{document_id}')
 
     def documents_rename(self, *, document_id: str, name: str) -> Any:
-        return self._request('PUT', f'/api/documents/documents/{document_id}/rename', json={'name': name})
+        return self._request('PUT', f'/api/documents/documents/{document_id}/rename', json={'new_filename': name})
 
     def documents_analyze(self, *, document_id: str) -> Any:
         return self._request('POST', f'/api/documents/documents/{document_id}/analyze')
@@ -1047,10 +1039,13 @@ class ImmojumpAPIClient:
     # ------------------------------------------------------------------
 
     def loans_list(self) -> Any:
+        org_id = self.credentials.organisation_id
+        # orga_id is the filter older backends read; organisation_id feeds the
+        # enterprise gate and is the filter name newer backends accept too.
         return self._request(
             'GET',
             '/api/loans',
-            params={'organisation_id': self.credentials.organisation_id},
+            params={'organisation_id': org_id, 'orga_id': org_id},
         )
 
     def loans_create(self, *, data: dict[str, Any]) -> Any:
@@ -1070,8 +1065,11 @@ class ImmojumpAPIClient:
     def loans_list_by_property(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/immobilien/{immobilie_id}/loans')
 
-    def loans_outstanding(self, *, loan_ids: list[str]) -> Any:
-        return self._request('POST', '/api/loans/outstanding', json={'loan_ids': loan_ids})
+    def loans_outstanding(self, *, immobilie_ids: list[str], as_of: str | None = None) -> Any:
+        payload: dict[str, Any] = {'immobilie_ids': immobilie_ids}
+        if as_of:
+            payload['as_of'] = _normalize_date_only(as_of)
+        return self._request('POST', '/api/loans/outstanding', json=payload)
 
     # ------------------------------------------------------------------
     # Units (Multi-family)
@@ -1461,14 +1459,14 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/email-messages/mark-read',
-            json={'message_ids': message_ids, 'read': read},
+            json={'message_ids': message_ids, 'is_read': read},
         )
 
     def email_mark_starred(self, *, message_ids: list[str], starred: bool = True) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/mark-starred',
-            json={'message_ids': message_ids, 'starred': starred},
+            json={'message_ids': message_ids, 'is_starred': starred},
         )
 
     def email_archive(self, *, message_ids: list[str]) -> Any:
@@ -1506,18 +1504,18 @@ class ImmojumpAPIClient:
             json={'name': name, 'organisation_id': self.credentials.organisation_id},
         )
 
-    def email_rename_folder(self, *, folder_id: str, name: str) -> Any:
+    def email_rename_folder(self, *, old_name: str, new_name: str) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/folders/rename',
-            json={'folder_id': folder_id, 'name': name},
+            json={'old_name': old_name, 'new_name': new_name},
         )
 
-    def email_delete_folder(self, *, folder_id: str) -> Any:
+    def email_delete_folder(self, *, name: str) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/folders/delete',
-            json={'folder_id': folder_id},
+            json={'name': name},
         )
 
     def email_search(self, *, query: str) -> Any:
@@ -1573,7 +1571,7 @@ class ImmojumpAPIClient:
             json=payload,
         )
 
-    def email_account_send_with_attachments(
+    def email_account_send_with_template(
         self,
         *,
         account_id: str,
@@ -1583,14 +1581,17 @@ class ImmojumpAPIClient:
         cc: list[str] | None = None,
         bcc: list[str] | None = None,
         contact_ids: list[str] | None = None,
-        attachments: list[tuple[str, bytes]] | None = None,
         template_id: str | None = None,
         variables: dict[str, Any] | None = None,
         signature_id: str | None = None,
     ) -> Any:
-        """Send an email via an organisation email account with attachments."""
-        # For now, use the simpler endpoint; attachments would require multipart
-        # This is a simplified version using JSON only
+        """Send an email via an organisation email account, optionally rendered
+        from a communication template and logged at the given contacts.
+
+        Uses /send-email: the plain /send route reads only subject, html,
+        recipients and signature and would drop template_id, variables and
+        contact_ids without an error.
+        """
         payload: dict[str, Any] = {
             'subject': subject,
             'html': body_html,
@@ -1608,10 +1609,9 @@ class ImmojumpAPIClient:
             payload['variables'] = variables
         if signature_id:
             payload['signature_id'] = signature_id
-        # Note: attachments require multipart/form-data, not supported here yet
         return self._request(
             'POST',
-            f'/api/org/email-accounts/{account_id}/send',
+            f'/api/org/email-accounts/{account_id}/send-email',
             json=payload,
         )
 

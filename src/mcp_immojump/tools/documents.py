@@ -1,30 +1,25 @@
-from .._shared import _call_with_client, _ok, destructive_op, read_only, write_op
+from .._shared import _call_with_client, _ok, _require_text, destructive_op, read_only, write_op
 
 
 def register(mcp):
     @mcp.tool(annotations=read_only())
     def documents_list(
+        immobilie_id=None,
         token=None,
         organisation_id=None,
-        immobilie_id=None,
-        page=1,
-        per_page=25,
         base_url=None,
     ):
-        """List documents, optionally filtered by property.
+        """List all documents of one property (no pagination).
 
-        - immobilie_id: filter documents for a specific property
+        - immobilie_id: the property whose documents to list (required)
         """
 
+        immo_id = _require_text(field_name='immobilie_id', value=immobilie_id)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.documents_list(
-                immobilie_id=immobilie_id,
-                page=int(page),
-                per_page=int(per_page),
-            ),
+            callback=lambda client: client.documents_list(immobilie_id=immo_id),
         )
         return _ok(result)
 
@@ -87,13 +82,17 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Rename a document."""
+        """Rename a document.
 
+        - name: new file name including the extension, e.g. "Grundbuch.pdf"
+        """
+
+        new_name = _require_text(field_name='name', value=name)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.documents_rename(document_id=document_id, name=name),
+            callback=lambda client: client.documents_rename(document_id=document_id, name=new_name),
         )
         return _ok(result)
 

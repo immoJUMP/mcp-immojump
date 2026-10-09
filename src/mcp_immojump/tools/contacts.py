@@ -1,4 +1,4 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
+from .._shared import _call_with_client, _ok, _require_dict, _require_list, _require_text, destructive_op, read_only, write_op
 
 
 def register(mcp):
@@ -225,18 +225,22 @@ def register(mcp):
 
     @mcp.tool(annotations=write_op())
     def contacts_merge_restore(
-        merge_id,
+        log_id,
         token=None,
         organisation_id=None,
         base_url=None,
     ):
-        """Restore a previously merged contact (undo merge)."""
+        """Restore a previously merged contact (undo merge).
 
+        - log_id: the "id" of an entry from contacts_merge_logs
+        """
+
+        log = _require_text(field_name='log_id', value=log_id)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.contacts_merge_restore(merge_id=merge_id),
+            callback=lambda client: client.contacts_merge_restore(log_id=log),
         )
         return _ok(result)
 
