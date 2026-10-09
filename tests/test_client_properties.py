@@ -3,6 +3,7 @@
 import json
 
 import httpx
+import pytest
 
 from mcp_immojump.client import ImmojumpAPIClient, ImmojumpCredentials
 
@@ -575,3 +576,18 @@ def test_property_intelligence_uses_shared_authorised_backend_routes():
     assert captured[2][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/decisions")
     assert captured[2][2]["request_id"] == "00000000-0000-0000-0000-000000000002"
     assert captured[3][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/analyze")
+
+
+@pytest.mark.parametrize('value', ['false', 'False', 0, None, ''])
+def test_valuation_request_never_refreshes_on_a_falsy_or_string_false(value):
+    """A string "false" is truthy in Python; it must not trigger a paid revaluation."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        client.valuation_request(immobilie_id='imm-1', force_refresh=value)
+
+    assert 'force_refresh' not in captured['json']

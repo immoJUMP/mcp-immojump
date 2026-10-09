@@ -1698,7 +1698,9 @@ class ImmojumpAPIClient:
         payload: dict[str, Any] = {'immobilie_id': immobilie_id}
         if provider:
             payload['provider'] = provider
-        if force_refresh:
+        # Strict: an agent may send the string "false", which is truthy and would
+        # trigger a paid revaluation.
+        if force_refresh is True or (isinstance(force_refresh, str) and force_refresh.strip().lower() == 'true'):
             payload['force_refresh'] = True
         return self._request('POST', '/api/valuation/request', json=payload)
 
