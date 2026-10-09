@@ -259,7 +259,7 @@ class TestAnkauf:
         if not items:
             pytest.skip('No immobilien available')
         immo_id = items[0]['id']
-        resp2 = mcp.call_tool('documents_list', {'immobilie_id': immo_id, 'per_page': 5})
+        resp2 = mcp.call_tool('documents_list', {'immobilie_id': immo_id})
         result2 = mcp.tool_result(resp2)
         assert result2['ok'] is True
         print(f"  → Dokumente für {immo_id} geladen")

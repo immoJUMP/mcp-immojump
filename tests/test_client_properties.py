@@ -42,7 +42,7 @@ def test_immobilien_search_passes_filters():
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['path'] = req.url.path
-        captured['params'] = dict(req.url.params)
+        captured['params'] = req.url.params
         return httpx.Response(200, json={'items': []})
 
     with _capture_client(handler) as client:
@@ -50,8 +50,9 @@ def test_immobilien_search_passes_filters():
 
     assert captured['path'] == '/api/v2/immobilien/search'
     assert captured['params']['search'] == 'Berlin'
-    assert captured['params']['status_ids'] == 's1,s2'
-    assert captured['params']['tag_ids'] == 't1'
+    # repeated parameters — the route reads them with request.args.getlist
+    assert captured['params'].get_list('status_ids') == ['s1', 's2']
+    assert captured['params'].get_list('tag_ids') == ['t1']
 
 
 def test_immobilien_get_path():
@@ -291,9 +292,9 @@ def test_loans_outstanding_body():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.loans_outstanding(loan_ids=['l1', 'l2'])
+        client.loans_outstanding(immobilie_ids=['i1', 'i2'], as_of='2026-12-31T10:00:00Z')
 
-    assert captured['json']['loan_ids'] == ['l1', 'l2']
+    assert captured['json'] == {'immobilie_ids': ['i1', 'i2'], 'as_of': '2026-12-31'}
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +377,7 @@ def test_documents_list_with_immobilie_filter():
         client.documents_list(immobilie_id='imm-1')
 
     assert captured['path'] == '/api/documents/documents'
-    assert captured['params']['immobilie_id'] == 'imm-1'
+    assert captured['params'] == {'immobilien_id': 'imm-1'}
 
 
 def test_documents_rename_path_and_body():
@@ -393,7 +394,7 @@ def test_documents_rename_path_and_body():
 
     assert captured['method'] == 'PUT'
     assert captured['path'] == '/api/documents/documents/doc-1/rename'
-    assert captured['json']['name'] == 'New Name.pdf'
+    assert captured['json'] == {'new_filename': 'New Name.pdf'}
 
 
 def test_documents_analyze_path():
