@@ -131,10 +131,53 @@ def _normalize_activity_payload(payload: dict[str, Any]) -> None:
 
 
 
+#: Field names the deals tool docstring advertised until 10/2026 although the
+#: backend's DealSchema never knew them (strict Marshmallow -> 400). Mapped so
+#: agents following old prompts or memories still land.
+_DEAL_SCALAR_ALIASES = {'title': 'name', 'value': 'deal_amount', 'notes': 'description'}
+_DEAL_LIST_ALIASES = {'immobilie_id': 'immobilie_ids', 'contact_id': 'contact_ids'}
+
+
+def _normalize_deal_payload(payload: dict[str, Any]) -> None:
+    """Map legacy deal field names onto DealSchema in-place.
+
+    Unlike the activity aliases, a legacy key that contradicts the real field
+    is an error, not a silent tie-break: one of the two values would otherwise
+    vanish without the caller noticing. ``pipeline_id`` has no counterpart at
+    all — the pipeline follows from ``status_id`` — so it is rejected instead
+    of being dropped.
+    """
+    if 'pipeline_id' in payload:
+        raise ValueError(
+            'Deals haben kein Feld pipeline_id — die Pipeline ergibt sich aus status_id. '
+            'Status der Deal-Pipeline per pipeline_statuses_list holen und status_id setzen.'
+        )
+    for alias, field in _DEAL_SCALAR_ALIASES.items():
+        if alias not in payload:
+            continue
+        value = payload.pop(alias)
+        if field in payload and payload[field] != value:
+            raise ValueError(f'{alias} und {field} sind widersprüchlich — nur {field} angeben.')
+        payload[field] = value
+    for alias, field in _DEAL_LIST_ALIASES.items():
+        if alias not in payload:
+            continue
+        value = payload.pop(alias)
+        as_list = [value] if value else []
+        if field in payload and list(payload[field] or []) != as_list:
+            raise ValueError(f'{alias} und {field} sind widersprüchlich — nur {field} (Liste) angeben.')
+        payload[field] = as_list
+
+
 #: Keys the backend adds to a validation error so the caller can fix the call
 #: itself, in the order they help most: what was wrong, what to write instead,
 #: which values are allowed. See ``modules/utils/validation_errors.py``.
-_HINT_KEYS = ('errors', 'error', 'field_suggestions', 'valid_values', 'valid_fields')
+#: ``message`` matters when ``error`` is only a generic headline ("Valuation
+#: Failed") and the reason sits next to it; ``code`` lets the model branch on
+#: a stable reason (e.g. ``VALUATION_PROPERTY_TYPE_UNSUPPORTED``).
+_HINT_KEYS = (
+    'message', 'errors', 'error', 'field_suggestions', 'valid_values', 'valid_fields', 'code',
+)
 
 #: Rendered hints are read by a model, so they compete with everything else in
 #: its context. Long enum lists get cut rather than allowed to bury the message.
@@ -362,10 +405,13 @@ class ImmojumpAPIClient:
         }
         if search:
             params['search'] = search
+        # The route reads both filters with request.args.getlist, i.e. as
+        # repeated parameters (?status_ids=1&status_ids=2). A comma-joined
+        # value is one unknown ID and filters everything out.
         if status_ids:
-            params['status_ids'] = ','.join(str(s) for s in status_ids)
+            params['status_ids'] = [str(s) for s in status_ids]
         if tag_ids:
-            params['tag_ids'] = ','.join(str(t) for t in tag_ids)
+            params['tag_ids'] = [str(t) for t in tag_ids]
         return self._request('GET', '/api/v2/immobilien/search', params=params)
 
     def immobilien_count(self) -> Any:
@@ -375,6 +421,18 @@ class ImmojumpAPIClient:
             params={'organisation_id': self.credentials.organisation_id},
         )
 
+    def property_intelligence_get(self, *, immobilie_id: str) -> Any:
+        return self._request('GET', f'/api/immobilien/{immobilie_id}/intelligence')
+
+    def property_intelligence_settings(self, *, immobilie_id: str, data: dict) -> Any:
+        return self._request('PUT', f'/api/immobilien/{immobilie_id}/intelligence/settings', json=data)
+
+    def property_intelligence_decide(self, *, immobilie_id: str, data: dict) -> Any:
+        return self._request('POST', f'/api/immobilien/{immobilie_id}/intelligence/decisions', json=data)
+
+    def property_intelligence_analyze(self, *, immobilie_id: str) -> Any:
+        return self._request('POST', f'/api/immobilien/{immobilie_id}/intelligence/analyze')
+
     def immobilien_get(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/v2/immobilien/{immobilie_id}')
 
@@ -383,8 +441,11 @@ class ImmojumpAPIClient:
         payload.setdefault('organisation_id', self.credentials.organisation_id)
         return self._request('POST', '/api/v2/immobilien', json=payload)
 
-    def immobilien_update(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
-        return self._request('PUT', f'/api/v2/immobilien/{immobilie_id}', json=data)
+    def immobilien_update_status(self, *, immobilie_id: str, status_id: int | str | None) -> Any:
+        # PUT on the property reads nothing but status_id; null clears the
+        # status, a missing key is rejected with 400. Fields go through PATCH.
+        payload = {'status_id': int(status_id) if status_id is not None else None}
+        return self._request('PUT', f'/api/v2/immobilien/{immobilie_id}', json=payload)
 
     def immobilien_patch(self, *, immobilie_id: str, data: dict[str, Any]) -> Any:
         return self._request('PATCH', f'/api/v2/immobilien/{immobilie_id}', json=data)
@@ -405,8 +466,17 @@ class ImmojumpAPIClient:
     def immobilien_contacts(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/v2/immobilien/{immobilie_id}/contacts')
 
-    def immobilien_split_units(self, *, immobilie_id: str) -> Any:
-        return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units')
+    def immobilien_split_units(
+        self,
+        *,
+        immobilie_id: str,
+        unit_ids: list[str],
+        target_type: str | None = None,
+    ) -> Any:
+        payload: dict[str, Any] = {'unit_ids': list(unit_ids)}
+        if target_type:
+            payload['target_type'] = target_type
+        return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units', json=payload)
 
     # ------------------------------------------------------------------
     # Contacts – CRUD
@@ -425,7 +495,7 @@ class ImmojumpAPIClient:
             'per_page': per_page,
         }
         if search:
-            params['search'] = search
+            params['q'] = search
         return self._request('GET', '/api/contacts', params=params)
 
     def contacts_get(self, *, contact_id: str) -> Any:
@@ -456,7 +526,7 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/contacts/bulk-delete',
-            json={'contact_ids': contact_ids},
+            json={'ids': contact_ids},
         )
 
     def contacts_get_immobilien(self, *, contact_id: str) -> Any:
@@ -472,8 +542,8 @@ class ImmojumpAPIClient:
             params={'organisation_id': self.credentials.organisation_id},
         )
 
-    def contacts_merge_restore(self, *, merge_id: str) -> Any:
-        return self._request('POST', '/api/contacts/merge/restore', json={'merge_id': merge_id})
+    def contacts_merge_restore(self, *, log_id: str) -> Any:
+        return self._request('POST', '/api/contacts/merge/restore', json={'log_id': log_id})
 
     # ------------------------------------------------------------------
     # Contacts – Import (existing)
@@ -593,7 +663,7 @@ class ImmojumpAPIClient:
             'per_page': per_page,
         }
         if search:
-            params['search'] = search
+            params['q'] = search
         if status:
             params['status'] = status
         if type:
@@ -652,7 +722,7 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/activities/structure-description',
-            json={'text': text, 'organisation_id': self.credentials.organisation_id},
+            json={'description': text},
         )
 
     def activities_calendar_generate_link(self) -> Any:
@@ -773,16 +843,14 @@ class ImmojumpAPIClient:
     def deals_list(
         self,
         *,
-        page: int = 1,
-        per_page: int = 25,
         pipeline_id: str | None = None,
         status_id: str | None = None,
         search: str | None = None,
     ) -> Any:
+        # /api/deals is not paginated: it returns every matching deal as a
+        # plain list, so we deliberately send no page/per_page.
         params: dict[str, Any] = {
             'organisation_id': self.credentials.organisation_id,
-            'page': page,
-            'per_page': per_page,
         }
         if pipeline_id:
             params['pipeline_id'] = pipeline_id
@@ -798,11 +866,13 @@ class ImmojumpAPIClient:
     def deals_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        _normalize_deal_payload(payload)
         _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
         return self._request('POST', '/api/deals', json=payload)
 
     def deals_update(self, *, deal_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
+        _normalize_deal_payload(payload)
         _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
         return self._request('PATCH', f'/api/deals/{deal_id}', json=payload)
 
@@ -867,27 +937,16 @@ class ImmojumpAPIClient:
     # Documents
     # ------------------------------------------------------------------
 
-    def documents_list(
-        self,
-        *,
-        immobilie_id: str | None = None,
-        page: int = 1,
-        per_page: int = 25,
-    ) -> Any:
-        params: dict[str, Any] = {
-            'organisation_id': self.credentials.organisation_id,
-            'page': page,
-            'per_page': per_page,
-        }
-        if immobilie_id:
-            params['immobilie_id'] = immobilie_id
-        return self._request('GET', '/api/documents/documents', params=params)
+    def documents_list(self, *, immobilie_id: str) -> Any:
+        # The route lists the documents of exactly one property (immobilien_id,
+        # required) and has no pagination.
+        return self._request('GET', '/api/documents/documents', params={'immobilien_id': immobilie_id})
 
     def documents_delete(self, *, document_id: str) -> Any:
         return self._request('DELETE', f'/api/documents/documents/{document_id}')
 
     def documents_rename(self, *, document_id: str, name: str) -> Any:
-        return self._request('PUT', f'/api/documents/documents/{document_id}/rename', json={'name': name})
+        return self._request('PUT', f'/api/documents/documents/{document_id}/rename', json={'new_filename': name})
 
     def documents_analyze(self, *, document_id: str) -> Any:
         return self._request('POST', f'/api/documents/documents/{document_id}/analyze')
@@ -1047,10 +1106,13 @@ class ImmojumpAPIClient:
     # ------------------------------------------------------------------
 
     def loans_list(self) -> Any:
+        org_id = self.credentials.organisation_id
+        # orga_id is the filter older backends read; organisation_id feeds the
+        # enterprise gate and is the filter name newer backends accept too.
         return self._request(
             'GET',
             '/api/loans',
-            params={'organisation_id': self.credentials.organisation_id},
+            params={'organisation_id': org_id, 'orga_id': org_id},
         )
 
     def loans_create(self, *, data: dict[str, Any]) -> Any:
@@ -1070,8 +1132,11 @@ class ImmojumpAPIClient:
     def loans_list_by_property(self, *, immobilie_id: str) -> Any:
         return self._request('GET', f'/api/immobilien/{immobilie_id}/loans')
 
-    def loans_outstanding(self, *, loan_ids: list[str]) -> Any:
-        return self._request('POST', '/api/loans/outstanding', json={'loan_ids': loan_ids})
+    def loans_outstanding(self, *, immobilie_ids: list[str], as_of: str | None = None) -> Any:
+        payload: dict[str, Any] = {'immobilie_ids': immobilie_ids}
+        if as_of:
+            payload['as_of'] = _normalize_date_only(as_of)
+        return self._request('POST', '/api/loans/outstanding', json=payload)
 
     # ------------------------------------------------------------------
     # Units (Multi-family)
@@ -1448,7 +1513,7 @@ class ImmojumpAPIClient:
         if folder:
             params['folder'] = folder
         if search:
-            params['search'] = search
+            params['q'] = search
         return self._request('GET', '/api/email-messages', params=params)
 
     def email_get(self, *, message_id: str) -> Any:
@@ -1461,14 +1526,14 @@ class ImmojumpAPIClient:
         return self._request(
             'POST',
             '/api/email-messages/mark-read',
-            json={'message_ids': message_ids, 'read': read},
+            json={'message_ids': message_ids, 'is_read': read},
         )
 
     def email_mark_starred(self, *, message_ids: list[str], starred: bool = True) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/mark-starred',
-            json={'message_ids': message_ids, 'starred': starred},
+            json={'message_ids': message_ids, 'is_starred': starred},
         )
 
     def email_archive(self, *, message_ids: list[str]) -> Any:
@@ -1506,18 +1571,18 @@ class ImmojumpAPIClient:
             json={'name': name, 'organisation_id': self.credentials.organisation_id},
         )
 
-    def email_rename_folder(self, *, folder_id: str, name: str) -> Any:
+    def email_rename_folder(self, *, old_name: str, new_name: str) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/folders/rename',
-            json={'folder_id': folder_id, 'name': name},
+            json={'old_name': old_name, 'new_name': new_name},
         )
 
-    def email_delete_folder(self, *, folder_id: str) -> Any:
+    def email_delete_folder(self, *, name: str) -> Any:
         return self._request(
             'POST',
             '/api/email-messages/folders/delete',
-            json={'folder_id': folder_id},
+            json={'name': name},
         )
 
     def email_search(self, *, query: str) -> Any:
@@ -1526,7 +1591,7 @@ class ImmojumpAPIClient:
             '/api/email-messages/search',
             params={
                 'organisation_id': self.credentials.organisation_id,
-                'query': query,
+                'q': query,
             },
         )
 
@@ -1573,7 +1638,7 @@ class ImmojumpAPIClient:
             json=payload,
         )
 
-    def email_account_send_with_attachments(
+    def email_account_send_with_template(
         self,
         *,
         account_id: str,
@@ -1583,14 +1648,17 @@ class ImmojumpAPIClient:
         cc: list[str] | None = None,
         bcc: list[str] | None = None,
         contact_ids: list[str] | None = None,
-        attachments: list[tuple[str, bytes]] | None = None,
         template_id: str | None = None,
         variables: dict[str, Any] | None = None,
         signature_id: str | None = None,
     ) -> Any:
-        """Send an email via an organisation email account with attachments."""
-        # For now, use the simpler endpoint; attachments would require multipart
-        # This is a simplified version using JSON only
+        """Send an email via an organisation email account, optionally rendered
+        from a communication template and logged at the given contacts.
+
+        Uses /send-email: the plain /send route reads only subject, html,
+        recipients and signature and would drop template_id, variables and
+        contact_ids without an error.
+        """
         payload: dict[str, Any] = {
             'subject': subject,
             'html': body_html,
@@ -1608,10 +1676,9 @@ class ImmojumpAPIClient:
             payload['variables'] = variables
         if signature_id:
             payload['signature_id'] = signature_id
-        # Note: attachments require multipart/form-data, not supported here yet
         return self._request(
             'POST',
-            f'/api/org/email-accounts/{account_id}/send',
+            f'/api/org/email-accounts/{account_id}/send-email',
             json=payload,
         )
 
@@ -1619,13 +1686,22 @@ class ImmojumpAPIClient:
     # Valuation
     # ------------------------------------------------------------------
 
-    def valuation_request(self, *, immobilie_id: str, providers: list[str] | None = None) -> Any:
-        payload: dict[str, Any] = {
-            'immobilie_id': immobilie_id,
-            'organisation_id': self.credentials.organisation_id,
-        }
-        if providers:
-            payload['providers'] = providers
+    def valuation_request(
+        self,
+        *,
+        immobilie_id: str,
+        provider: str | None = None,
+        force_refresh: bool = False,
+    ) -> Any:
+        # Address, living space, property type and year come from the property
+        # itself — the backend reads them server-side.
+        payload: dict[str, Any] = {'immobilie_id': immobilie_id}
+        if provider:
+            payload['provider'] = provider
+        # Strict: an agent may send the string "false", which is truthy and would
+        # trigger a paid revaluation.
+        if force_refresh is True or (isinstance(force_refresh, str) and force_refresh.strip().lower() == 'true'):
+            payload['force_refresh'] = True
         return self._request('POST', '/api/valuation/request', json=payload)
 
     def valuation_history(self, *, immobilie_id: str) -> Any:

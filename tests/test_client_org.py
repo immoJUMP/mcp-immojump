@@ -375,7 +375,8 @@ def test_email_list_path_and_params():
 
     assert captured['path'] == '/api/email-messages'
     assert captured['params']['folder'] == 'inbox'
-    assert captured['params']['search'] == 'Rechnung'
+    assert captured['params']['q'] == 'Rechnung'
+    assert 'search' not in captured['params']
 
 
 def test_email_thread_path():
@@ -401,7 +402,7 @@ def test_email_mark_read_body():
     with _capture_client(handler) as client:
         client.email_mark_read(message_ids=['m1', 'm2'], read=False)
 
-    assert captured['json'] == {'message_ids': ['m1', 'm2'], 'read': False}
+    assert captured['json'] == {'message_ids': ['m1', 'm2'], 'is_read': False}
 
 
 def test_email_archive_body():
@@ -585,3 +586,20 @@ def test_user_update_profile_path():
 
     assert captured['method'] == 'PUT'
     assert captured['path'] == '/api/user/profile'
+
+
+def test_email_search_sends_q():
+    # Backend (/api/email-messages/search) liest `q`; `query` lieferte immer [].
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['path'] = req.url.path
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json={'items': []})
+
+    with _capture_client(handler) as client:
+        client.email_search(query='Rechnung')
+
+    assert captured['path'] == '/api/email-messages/search'
+    assert captured['params']['q'] == 'Rechnung'
+    assert 'query' not in captured['params']

@@ -170,7 +170,7 @@ class TestAlltag:
 
     def test_deals_by_status(self, mcp):
         """'Welche Deals sind im Notartermin?'"""
-        resp = mcp.call_tool('deals_list', {'per_page': 5})
+        resp = mcp.call_tool('deals_list', {})
         result = mcp.tool_result(resp)
         assert result['ok'] is True
         print("  → Deals geladen")
@@ -200,21 +200,23 @@ class TestAlltag:
 class TestAnkauf:
     def test_create_immobilie(self, mcp):
         """'Lege ein neues Objekt an: MFH, Aachen, Roermonder Str. 15, 380k'"""
+        # POST reads name, type, daten and status_id; other top-level keys
+        # (title, strasse, immobilie_type, ...) used to be dropped silently.
         resp = mcp.call_tool('immobilien_create', {
             'data': {
-                'title': 'E2E Test MFH Aachen',
-                'strasse': 'Roermonder Str.',
-                'hausnummer': '15',
-                'plz': '52072',
-                'ort': 'Aachen',
-                'kaufpreis': 380000,
-                'immobilie_type': 'MFH',
+                'name': 'E2E Test MFH Aachen',
+                'type': 'MFH',
+                'daten': {
+                    'adresse': 'Roermonder Str. 15, 52072 Aachen',
+                    'kaufpreis': 380000,
+                },
             },
         })
         result = mcp.tool_result(resp)
         assert result['ok'] is True
         immo = result['result']
         assert 'id' in immo
+        assert immo['type'] == 'MFH'
         print(f"  → Immobilie erstellt: {immo['id']}")
         self.__class__._immo_id = immo['id']
 
@@ -259,7 +261,7 @@ class TestAnkauf:
         if not items:
             pytest.skip('No immobilien available')
         immo_id = items[0]['id']
-        resp2 = mcp.call_tool('documents_list', {'immobilie_id': immo_id, 'per_page': 5})
+        resp2 = mcp.call_tool('documents_list', {'immobilie_id': immo_id})
         result2 = mcp.tool_result(resp2)
         assert result2['ok'] is True
         print(f"  → Dokumente für {immo_id} geladen")

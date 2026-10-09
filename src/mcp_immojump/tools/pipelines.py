@@ -65,6 +65,8 @@ def register(mcp):
         """Create a pipeline.
 
         - entity_type: immobilie, contact, or deal (default: immobilie)
+        - Needs an organisation admin, like adding statuses. Any other member
+          gets 403 and nothing is created -- ask an admin instead of retrying.
         """
 
         payload: dict[str, Any] = {'name': name, 'entity_type': entity_type}
@@ -90,7 +92,15 @@ def register(mcp):
         regenerate_inbound_email_prefix=None,
         base_url=None,
     ):
-        """Update an existing pipeline."""
+        """Update an existing pipeline (name, order, inbound address).
+
+        - entity_type: switching the type needs an organisation admin and only
+          works while every status of the pipeline already has the new type
+          (an empty pipeline, or repairing one whose statuses were created for
+          that type). Otherwise the API answers 400 and nothing changes --
+          create a new pipeline of the wanted type instead. Sending the
+          pipeline's current type is not a switch and is always fine.
+        """
 
         payload: dict[str, Any] = {}
         if name is not None:
@@ -117,7 +127,14 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Delete a pipeline."""
+        """Delete a pipeline.
+
+        - Needs an organisation admin. Any other member gets 403 and nothing
+          changes -- ask an admin instead of retrying.
+        - Irreversible: every property/contact in the pipeline is detached
+          from its status, the statuses and their activity templates are
+          deleted. Export the pipeline first if it might be needed again.
+        """
 
         result = _call_with_client(
             base_url=base_url,
@@ -152,7 +169,14 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Import a pipeline definition from YAML string or JSON object."""
+        """Import a pipeline definition from YAML string or JSON object.
+
+        Outcome references are remapped onto the newly created statuses and
+        templates (target_status_ref / template_ref from pipeline_export, or
+        matching status names). Anything that still points outside the
+        importing organisation is dropped: the action stays, without target.
+        Every status takes the entity_type of the pipeline.
+        """
 
         if not isinstance(payload, (dict, str)):
             raise ValueError('payload must be an object or yaml string')

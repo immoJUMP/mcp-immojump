@@ -34,7 +34,9 @@ def test_contacts_list_path_and_params():
     assert captured['path'] == '/api/contacts'
     assert captured['params']['organisation_id'] == 'org-1'
     assert captured['params']['page'] == '3'
-    assert captured['params']['search'] == 'Müller'
+    # Backend liest `q`; `search` lief bis 10/2026 ungefiltert durch.
+    assert captured['params']['q'] == 'Müller'
+    assert 'search' not in captured['params']
 
 
 def test_contacts_get_path():
@@ -134,7 +136,7 @@ def test_contacts_bulk_delete_body():
     with _capture_client(handler) as client:
         client.contacts_bulk_delete(contact_ids=['c-1', 'c-2'])
 
-    assert captured['json']['contact_ids'] == ['c-1', 'c-2']
+    assert captured['json'] == {'ids': ['c-1', 'c-2']}  # route reads 'ids'
 
 
 def test_contacts_get_immobilien_path():
@@ -158,9 +160,9 @@ def test_contacts_merge_restore_body():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.contacts_merge_restore(merge_id='m-1')
+        client.contacts_merge_restore(log_id='log-1')
 
-    assert captured['json']['merge_id'] == 'm-1'
+    assert captured['json'] == {'log_id': 'log-1'}
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +185,20 @@ def test_activities_list_path_and_params():
     assert captured['params']['type'] == 'call'
     # unscheduled is opt-in — absent unless explicitly requested.
     assert 'unscheduled' not in captured['params']
+
+
+def test_activities_list_search_sends_q():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['params'] = dict(req.url.params)
+        return httpx.Response(200, json=[])
+
+    with _capture_client(handler) as client:
+        client.activities_list(search='Muth')
+
+    assert captured['params']['q'] == 'Muth'
+    assert 'search' not in captured['params']
 
 
 def test_activities_list_unscheduled_sends_flag():

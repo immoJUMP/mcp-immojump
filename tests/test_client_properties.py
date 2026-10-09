@@ -3,6 +3,7 @@
 import json
 
 import httpx
+import pytest
 
 from mcp_immojump.client import ImmojumpAPIClient, ImmojumpCredentials
 
@@ -42,7 +43,7 @@ def test_immobilien_search_passes_filters():
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['path'] = req.url.path
-        captured['params'] = dict(req.url.params)
+        captured['params'] = req.url.params
         return httpx.Response(200, json={'items': []})
 
     with _capture_client(handler) as client:
@@ -50,8 +51,9 @@ def test_immobilien_search_passes_filters():
 
     assert captured['path'] == '/api/v2/immobilien/search'
     assert captured['params']['search'] == 'Berlin'
-    assert captured['params']['status_ids'] == 's1,s2'
-    assert captured['params']['tag_ids'] == 't1'
+    # repeated parameters — the route reads them with request.args.getlist
+    assert captured['params'].get_list('status_ids') == ['s1', 's2']
+    assert captured['params'].get_list('tag_ids') == ['t1']
 
 
 def test_immobilien_get_path():
@@ -147,19 +149,71 @@ def test_immobilien_transfer_body():
     assert captured['json']['target_organisation_id'] == 'org-2'
 
 
-def test_immobilien_split_units_path():
+def test_immobilien_update_status_sends_only_the_status_id():
+    """PUT /api/v2/immobilien/<id> reads nothing but status_id.
+
+    The former immobilien_update sent a whole property object there: every
+    field was dropped, and without status_id the backend cleared the status.
+    """
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['method'] = req.method
         captured['path'] = req.url.path
-        return httpx.Response(200, json={})
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={'id': 'imm-1'})
 
     with _capture_client(handler) as client:
-        client.immobilien_split_units(immobilie_id='imm-1')
+        client.immobilien_update_status(immobilie_id='imm-1', status_id='42')
+
+    assert captured['method'] == 'PUT'
+    assert captured['path'] == '/api/v2/immobilien/imm-1'
+    assert captured['json'] == {'status_id': 42}
+
+
+def test_immobilien_update_status_none_takes_the_property_out_of_the_pipeline():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={'id': 'imm-1'})
+
+    with _capture_client(handler) as client:
+        client.immobilien_update_status(immobilie_id='imm-1', status_id=None)
+
+    # An explicit null — a missing key is rejected with HTTP 400.
+    assert captured['json'] == {'status_id': None}
+
+
+def test_immobilien_split_units_sends_unit_ids_and_target_type():
+    """Without unit_ids the backend answers 400 — the tool used to send no body at all."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['method'] = req.method
+        captured['path'] = req.url.path
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json=[])
+
+    with _capture_client(handler) as client:
+        client.immobilien_split_units(immobilie_id='imm-1', unit_ids=['u-1', 'u-2'], target_type='ETW')
 
     assert captured['method'] == 'POST'
     assert captured['path'] == '/api/v2/immobilien/imm-1/split-units'
+    assert captured['json'] == {'unit_ids': ['u-1', 'u-2'], 'target_type': 'ETW'}
+
+
+def test_immobilien_split_units_leaves_the_default_type_to_the_backend():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(201, json=[])
+
+    with _capture_client(handler) as client:
+        client.immobilien_split_units(immobilie_id='imm-1', unit_ids=['u-1'])
+
+    assert captured['json'] == {'unit_ids': ['u-1']}
 
 
 def test_immobilien_contacts_path():
@@ -202,11 +256,14 @@ def test_units_create_path_and_body():
         return httpx.Response(201, json={})
 
     with _capture_client(handler) as client:
-        client.units_create(immobilie_id='imm-1', data={'name': 'WE1', 'wohnflaeche': 60})
+        client.units_create(
+            immobilie_id='imm-1',
+            data={'einheit': 'WE 1', 'livingspace': 60, 'ist_rent': 540},
+        )
 
     assert captured['method'] == 'POST'
     assert captured['path'] == '/api/units/unit/imm-1'
-    assert captured['json']['name'] == 'WE1'
+    assert captured['json'] == {'einheit': 'WE 1', 'livingspace': 60, 'ist_rent': 540}
 
 
 def test_units_update_path():
@@ -218,7 +275,7 @@ def test_units_update_path():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.units_update(unit_id='u-1', data={'wohnflaeche': 80})
+        client.units_update(unit_id='u-1', data={'livingspace': 80})
 
     assert captured['method'] == 'PUT'
     assert captured['path'] == '/api/units/unit/u-1'
@@ -291,9 +348,9 @@ def test_loans_outstanding_body():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.loans_outstanding(loan_ids=['l1', 'l2'])
+        client.loans_outstanding(immobilie_ids=['i1', 'i2'], as_of='2026-12-31T10:00:00Z')
 
-    assert captured['json']['loan_ids'] == ['l1', 'l2']
+    assert captured['json'] == {'immobilie_ids': ['i1', 'i2'], 'as_of': '2026-12-31'}
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +433,7 @@ def test_documents_list_with_immobilie_filter():
         client.documents_list(immobilie_id='imm-1')
 
     assert captured['path'] == '/api/documents/documents'
-    assert captured['params']['immobilie_id'] == 'imm-1'
+    assert captured['params'] == {'immobilien_id': 'imm-1'}
 
 
 def test_documents_rename_path_and_body():
@@ -393,7 +450,7 @@ def test_documents_rename_path_and_body():
 
     assert captured['method'] == 'PUT'
     assert captured['path'] == '/api/documents/documents/doc-1/rename'
-    assert captured['json']['name'] == 'New Name.pdf'
+    assert captured['json'] == {'new_filename': 'New Name.pdf'}
 
 
 def test_documents_analyze_path():
@@ -430,21 +487,39 @@ def test_documents_mark_reviewed_path():
 # Valuation
 # ---------------------------------------------------------------------------
 
-def test_valuation_request_body():
+def test_valuation_request_sends_only_the_property_id():
+    """The backend reads address, living space, type and year from the property.
+
+    The old body (``organisation_id`` + ``providers`` list) never matched the
+    backend schema, which answered every call with a 400.
+    """
     captured = {}
 
     def handler(req: httpx.Request) -> httpx.Response:
         captured['method'] = req.method
+        captured['path'] = req.url.path
         captured['json'] = json.loads(req.read())
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.valuation_request(immobilie_id='imm-1', providers=['sprengnetter'])
+        client.valuation_request(immobilie_id='imm-1')
 
     assert captured['method'] == 'POST'
-    assert captured['json']['immobilie_id'] == 'imm-1'
-    assert captured['json']['organisation_id'] == 'org-1'
-    assert captured['json']['providers'] == ['sprengnetter']
+    assert captured['path'] == '/api/valuation/request'
+    assert captured['json'] == {'immobilie_id': 'imm-1'}
+
+
+def test_valuation_request_passes_provider_and_refresh():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        client.valuation_request(immobilie_id='imm-1', provider='fpre', force_refresh=True)
+
+    assert captured['json'] == {'immobilie_id': 'imm-1', 'provider': 'fpre', 'force_refresh': True}
 
 
 def test_valuation_history_path():
@@ -471,3 +546,48 @@ def test_valuation_providers_path():
         client.valuation_providers()
 
     assert captured['path'] == '/api/valuation/providers'
+
+
+def test_property_intelligence_uses_shared_authorised_backend_routes():
+    captured = []
+
+    def handler(req):
+        captured.append((req.method, req.url.path, json.loads(req.read()) if req.read() else None))
+        return httpx.Response(200, json={"profile_match": {"status": "unknown"}})
+
+    with _capture_client(handler) as client:
+        client.property_intelligence_get(immobilie_id="imm-1")
+        client.property_intelligence_settings(immobilie_id="imm-1", data={"phase": "purchase"})
+        client.property_intelligence_decide(
+            immobilie_id="imm-1",
+            data={
+                "outcome": "reject",
+                "reason": "renovation",
+                "request_id": "00000000-0000-0000-0000-000000000002",
+            },
+        )
+        client.property_intelligence_analyze(immobilie_id="imm-1")
+    assert captured[0] == ("GET", "/api/immobilien/imm-1/intelligence", None)
+    assert captured[1] == (
+        "PUT",
+        "/api/immobilien/imm-1/intelligence/settings",
+        {"phase": "purchase"},
+    )
+    assert captured[2][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/decisions")
+    assert captured[2][2]["request_id"] == "00000000-0000-0000-0000-000000000002"
+    assert captured[3][0:2] == ("POST", "/api/immobilien/imm-1/intelligence/analyze")
+
+
+@pytest.mark.parametrize('value', ['false', 'False', 0, None, ''])
+def test_valuation_request_never_refreshes_on_a_falsy_or_string_false(value):
+    """A string "false" is truthy in Python; it must not trigger a paid revaluation."""
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        client.valuation_request(immobilie_id='imm-1', force_refresh=value)
+
+    assert 'force_refresh' not in captured['json']
