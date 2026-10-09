@@ -1555,7 +1555,7 @@ class ImmojumpAPIClient:
             '/api/email-messages/search',
             params={
                 'organisation_id': self.credentials.organisation_id,
-                'query': query,
+                'q': query,
             },
         )
 
