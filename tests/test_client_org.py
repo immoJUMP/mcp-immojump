@@ -375,7 +375,8 @@ def test_email_list_path_and_params():
 
     assert captured['path'] == '/api/email-messages'
     assert captured['params']['folder'] == 'inbox'
-    assert captured['params']['search'] == 'Rechnung'
+    assert captured['params']['q'] == 'Rechnung'
+    assert 'search' not in captured['params']
 
 
 def test_email_thread_path():
