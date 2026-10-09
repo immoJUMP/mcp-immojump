@@ -402,7 +402,7 @@ def test_email_mark_read_body():
     with _capture_client(handler) as client:
         client.email_mark_read(message_ids=['m1', 'm2'], read=False)
 
-    assert captured['json'] == {'message_ids': ['m1', 'm2'], 'read': False}
+    assert captured['json'] == {'message_ids': ['m1', 'm2'], 'is_read': False}
 
 
 def test_email_archive_body():

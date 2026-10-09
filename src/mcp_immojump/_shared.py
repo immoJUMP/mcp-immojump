@@ -142,6 +142,29 @@ def _require_list(*, field_name: str, value: Any) -> list[Any]:
     return value
 
 
+def _as_bool(*, field_name: str, value: Any) -> bool:
+    """Parse a boolean flag. Some MCP clients send "false" as a string, and
+    bool("false") is True — for a read/starred flag that silently inverts
+    the operation."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in ('true', '1', 'yes', 'ja'):
+        return True
+    if text in ('false', '0', 'no', 'nein', ''):
+        return False
+    raise ValueError(f'{field_name} must be true or false')
+
+
+def _id_list(*, field_name: str, value: Any) -> list[str]:
+    """Accept a list, a JSON-encoded list or a comma-separated string of IDs."""
+    if isinstance(value, str) and not value.strip().startswith('['):
+        return [part.strip() for part in value.split(',') if part.strip()]
+    return [str(v).strip() for v in _require_list(field_name=field_name, value=value) if str(v).strip()]
+
+
 def _resolve_credentials(
     *,
     base_url: str | None,

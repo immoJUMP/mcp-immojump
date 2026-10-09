@@ -1,4 +1,4 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
+from .._shared import _call_with_client, _id_list, _ok, _require_dict, destructive_op, read_only, write_op
 
 
 def register(mcp):
@@ -8,7 +8,7 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """List all loans for the organisation."""
+        """List all loans of the properties in the organisation."""
 
         result = _call_with_client(
             base_url=base_url,
@@ -114,21 +114,27 @@ def register(mcp):
 
     @mcp.tool(annotations=read_only())
     def loans_outstanding(
-        loan_ids,
+        immobilie_ids,
+        as_of=None,
         token=None,
         organisation_id=None,
         base_url=None,
     ):
-        """Calculate outstanding amounts for the given loan IDs.
+        """Outstanding loan balance per property, summed over all its loans.
 
-        loan_ids: list of integer loan IDs, e.g. [1, 2, 3].
+        - immobilie_ids: list of property IDs (not loan IDs). Properties the
+          caller may not access are skipped without an error.
+        - as_of: optional date "YYYY-MM-DD" (default: today)
+
+        Returns {"per_immobilie": {<immobilie_id>: amount}, "total": amount,
+        "as_of": "YYYY-MM-DD"} in EUR.
         """
 
-        ids = _require_list(field_name='loan_ids', value=loan_ids)
+        ids = _id_list(field_name='immobilie_ids', value=immobilie_ids)
         result = _call_with_client(
             base_url=base_url,
             token=token,
             organisation_id=organisation_id,
-            callback=lambda client: client.loans_outstanding(loan_ids=ids),
+            callback=lambda client: client.loans_outstanding(immobilie_ids=ids, as_of=as_of),
         )
         return _ok(result)

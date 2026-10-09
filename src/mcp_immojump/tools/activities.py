@@ -235,7 +235,11 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Use AI to structure a free-text activity description into a proper format."""
+        """Use AI to structure a free-text activity description into a proper format.
+
+        - text: the unstructured description (sent to the backend as
+          "description"); the result is returned, nothing is saved.
+        """
 
         result = _call_with_client(
             base_url=base_url,
