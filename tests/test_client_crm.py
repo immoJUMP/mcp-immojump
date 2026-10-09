@@ -136,7 +136,7 @@ def test_contacts_bulk_delete_body():
     with _capture_client(handler) as client:
         client.contacts_bulk_delete(contact_ids=['c-1', 'c-2'])
 
-    assert captured['json']['contact_ids'] == ['c-1', 'c-2']
+    assert captured['json'] == {'ids': ['c-1', 'c-2']}  # route reads 'ids'
 
 
 def test_contacts_get_immobilien_path():
@@ -160,9 +160,9 @@ def test_contacts_merge_restore_body():
         return httpx.Response(200, json={})
 
     with _capture_client(handler) as client:
-        client.contacts_merge_restore(merge_id='m-1')
+        client.contacts_merge_restore(log_id='log-1')
 
-    assert captured['json']['merge_id'] == 'm-1'
+    assert captured['json'] == {'log_id': 'log-1'}
 
 
 # ---------------------------------------------------------------------------
