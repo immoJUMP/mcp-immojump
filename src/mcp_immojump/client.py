@@ -425,7 +425,7 @@ class ImmojumpAPIClient:
             'per_page': per_page,
         }
         if search:
-            params['search'] = search
+            params['q'] = search
         return self._request('GET', '/api/contacts', params=params)
 
     def contacts_get(self, *, contact_id: str) -> Any:
@@ -593,7 +593,7 @@ class ImmojumpAPIClient:
             'per_page': per_page,
         }
         if search:
-            params['search'] = search
+            params['q'] = search
         if status:
             params['status'] = status
         if type:
@@ -1448,7 +1448,7 @@ class ImmojumpAPIClient:
         if folder:
             params['folder'] = folder
         if search:
-            params['search'] = search
+            params['q'] = search
         return self._request('GET', '/api/email-messages', params=params)
 
     def email_get(self, *, message_id: str) -> Any:
