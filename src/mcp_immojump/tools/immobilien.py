@@ -18,8 +18,20 @@ def register(mcp):
     def property_intelligence_settings(
         immobilie_id, data, token=None, organisation_id=None, base_url=None
     ):
-        """Update personal profile_id, phase, checklist status or extra_categories; business rules
-        stay in the backend."""
+        """Update the personal settings of the investor overview. data takes only these keys:
+        - profile_id: UUID of one of your own search profiles in this organisation, or null
+        - phase: "initial" (first check) or "purchase" (purchase decision)
+        - checklist: {category: status}, e.g. {"grundbuch": "requested"}; only the
+          given categories change. Status: missing, requested, present, incomplete,
+          reviewed, not_relevant
+        - extra_categories: list of further document categories to track
+        - target_yield: gross target yield in percent, 1 to 15, or null for the default
+        Categories: expose, mieterliste, mietvertrag, energieausweis, grundbuch,
+        grundriss, wohnflaechenberechnung, betriebskosten, teilungserklaerung,
+        wirtschaftsplan, hausgeldabrechnung, weg_protokoll, baulasten, altlasten,
+        bauunterlagen, versicherung, kaufvertrag, rechnung, finanzierung, sonstiges.
+        Any other key or value is rejected with a generic 400; business rules stay
+        in the backend."""
         payload = _require_dict(field_name="data", value=data)
         result = _call_with_client(
             base_url=base_url,
@@ -35,8 +47,10 @@ def register(mcp):
     def property_intelligence_decide(
         immobilie_id, data, token=None, organisation_id=None, base_url=None
     ):
-        """Record an explicit customer decision: outcome pursue/hold/reject, reason
-        renovation/location/price/yield/other and UUID request_id. Never infer consent."""
+        """Record an explicit customer decision. data: outcome pursue/hold/reject, reason
+        renovation/location/price/yield/other, request_id (a new UUID; resending the
+        same one is idempotent) and optional note (text, at most 2000 characters).
+        Never infer consent."""
         payload = _require_dict(field_name="data", value=data)
         result = _call_with_client(
             base_url=base_url,
@@ -221,9 +235,11 @@ def register(mcp):
         base_url=None,
     ):
         """Partial update of a property (PATCH -- only provided fields change).
-        Does not move the property in the pipeline: status_id or status in data
-        is rejected with 400 (code STATUS_VIA_PUT) and nothing is changed. Use
-        immobilien_update_status for that.
+        Does not move the property in the pipeline: status_id at the top level of
+        data is rejected with 400 (code STATUS_VIA_PUT) and nothing is changed; a
+        text status, or a status_id inside a nested "daten" block, is dropped with a
+        warning while the other fields are saved. Use immobilien_update_status for
+        the pipeline status.
 
         Only include the fields you want to modify, e.g.
         {"kaufpreis": 350000, "wohnflaeche": 85}
