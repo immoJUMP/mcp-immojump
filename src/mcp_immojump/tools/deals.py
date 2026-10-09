@@ -65,18 +65,29 @@ def register(mcp):
         data: JSON object with:
 
         Required:
-        - pipeline_id: integer ID of the pipeline (use pipeline_list)
-        - status_id: integer ID of a status within that pipeline
-          (use pipeline_statuses_list to get statuses for a pipeline)
-        - immobilie_id: integer ID of the linked property
+        - name: string (title of the deal)
 
         Optional:
-        - contact_id: UUID of the linked contact
-        - title: string
-        - value: number (deal value in EUR)
-        - notes: string
+        - status_id: integer ID of a status in a deal pipeline (pipeline_list →
+          pipeline with entity_type "deal", then pipeline_statuses_list).
+          There is no pipeline_id field — the pipeline follows from status_id.
+        - immobilie_ids: list of property IDs. A property can sit in only one
+          deal; linking one that is already taken fails with a message naming
+          the other deal.
+        - contact_ids: list of contact UUIDs
+        - assignee_ids: list of integer user IDs
+        - tag_ids: list of tag IDs
+        - description: string
+        - deal_amount: number (deal value)
+        - currency: string, default "EUR"
+        - probability: integer percentage (0–100)
+        - next_step: string
         - expected_close_date: ISO datetime or date-only string, e.g. "2026-06-01"
           (auto-expanded to midnight UTC)
+
+        Legacy names title/value/notes and singular immobilie_id/contact_id are
+        mapped to name/deal_amount/description/immobilie_ids/contact_ids; giving
+        both with different values is rejected. pipeline_id is rejected.
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -99,8 +110,12 @@ def register(mcp):
         """Update an existing deal (partial update via PATCH — only provided fields change).
 
         deal_id: UUID of the deal.
-        data: same fields as deals_create. Change status_id to move the deal
-        to a different pipeline stage. expected_close_date accepts date-only strings.
+        data: any of the deals_create fields (none required). Set status_id to
+        move the deal to another stage. List fields (immobilie_ids, contact_ids,
+        assignee_ids, tag_ids) REPLACE the current links — send the full list;
+        an empty list removes all links. expected_close_date accepts date-only
+        strings. regenerate_inbound_email_prefix: true issues a new inbound
+        e-mail address for the deal.
         """
 
         payload = _require_dict(field_name='data', value=data)

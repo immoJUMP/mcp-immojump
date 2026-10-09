@@ -131,6 +131,44 @@ def _normalize_activity_payload(payload: dict[str, Any]) -> None:
 
 
 
+#: Field names the deals tool docstring advertised until 10/2026 although the
+#: backend's DealSchema never knew them (strict Marshmallow -> 400). Mapped so
+#: agents following old prompts or memories still land.
+_DEAL_SCALAR_ALIASES = {'title': 'name', 'value': 'deal_amount', 'notes': 'description'}
+_DEAL_LIST_ALIASES = {'immobilie_id': 'immobilie_ids', 'contact_id': 'contact_ids'}
+
+
+def _normalize_deal_payload(payload: dict[str, Any]) -> None:
+    """Map legacy deal field names onto DealSchema in-place.
+
+    Unlike the activity aliases, a legacy key that contradicts the real field
+    is an error, not a silent tie-break: one of the two values would otherwise
+    vanish without the caller noticing. ``pipeline_id`` has no counterpart at
+    all — the pipeline follows from ``status_id`` — so it is rejected instead
+    of being dropped.
+    """
+    if 'pipeline_id' in payload:
+        raise ValueError(
+            'Deals haben kein Feld pipeline_id — die Pipeline ergibt sich aus status_id. '
+            'Status der Deal-Pipeline per pipeline_statuses_list holen und status_id setzen.'
+        )
+    for alias, field in _DEAL_SCALAR_ALIASES.items():
+        if alias not in payload:
+            continue
+        value = payload.pop(alias)
+        if field in payload and payload[field] != value:
+            raise ValueError(f'{alias} und {field} sind widersprüchlich — nur {field} angeben.')
+        payload[field] = value
+    for alias, field in _DEAL_LIST_ALIASES.items():
+        if alias not in payload:
+            continue
+        value = payload.pop(alias)
+        as_list = [value] if value else []
+        if field in payload and list(payload[field] or []) != as_list:
+            raise ValueError(f'{alias} und {field} sind widersprüchlich — nur {field} (Liste) angeben.')
+        payload[field] = as_list
+
+
 #: Keys the backend adds to a validation error so the caller can fix the call
 #: itself, in the order they help most: what was wrong, what to write instead,
 #: which values are allowed. See ``modules/utils/validation_errors.py``.
@@ -825,11 +863,13 @@ class ImmojumpAPIClient:
     def deals_create(self, *, data: dict[str, Any]) -> Any:
         payload = dict(data)
         payload.setdefault('organisation_id', self.credentials.organisation_id)
+        _normalize_deal_payload(payload)
         _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
         return self._request('POST', '/api/deals', json=payload)
 
     def deals_update(self, *, deal_id: str, data: dict[str, Any]) -> Any:
         payload = dict(data)
+        _normalize_deal_payload(payload)
         _normalize_payload_dates(payload, datetime_fields=('expected_close_date',))
         return self._request('PATCH', f'/api/deals/{deal_id}', json=payload)
 
