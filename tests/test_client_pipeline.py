@@ -3,6 +3,7 @@
 import json
 
 import httpx
+import pytest
 
 from mcp_immojump.client import ImmojumpAPIClient, ImmojumpCredentials
 
@@ -58,10 +59,90 @@ def test_deals_create_includes_org():
         return httpx.Response(201, json={})
 
     with _capture_client(handler) as client:
-        client.deals_create(data={'pipeline_id': 'p-1', 'status_id': 's-1'})
+        client.deals_create(data={'name': 'MFH Kaiserstr.', 'status_id': 7})
 
-    assert captured['json']['organisation_id'] == 'org-1'
-    assert captured['json']['pipeline_id'] == 'p-1'
+    assert captured['json'] == {'organisation_id': 'org-1', 'name': 'MFH Kaiserstr.', 'status_id': 7}
+
+
+def _sent_deal_payload(method, data):
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured['json'] = json.loads(req.read())
+        return httpx.Response(200, json={})
+
+    with _capture_client(handler) as client:
+        if method == 'create':
+            client.deals_create(data=data)
+        else:
+            client.deals_update(deal_id='d-1', data=data)
+    return captured.get('json')
+
+
+@pytest.mark.parametrize('method', ['create', 'update'])
+def test_deals_legacy_field_names_are_mapped_to_backend_fields(method):
+    """Until 10/2026 the tool docstring advertised title/value/notes and
+    singular immobilie_id/contact_id. The backend's DealSchema rejects all of
+    them with 400, so agents following old prompts must still land."""
+    sent = _sent_deal_payload(method, {
+        'title': 'MFH Kaiserstr.',
+        'value': 450000,
+        'notes': 'Exposé angefragt',
+        'immobilie_id': 'imm-1',
+        'contact_id': 'c-1',
+    })
+
+    assert sent['name'] == 'MFH Kaiserstr.'
+    assert sent['deal_amount'] == 450000
+    assert sent['description'] == 'Exposé angefragt'
+    assert sent['immobilie_ids'] == ['imm-1']
+    assert sent['contact_ids'] == ['c-1']
+    for legacy in ('title', 'value', 'notes', 'immobilie_id', 'contact_id'):
+        assert legacy not in sent
+
+
+@pytest.mark.parametrize('method', ['create', 'update'])
+def test_deals_singular_id_null_clears_the_list(method):
+    sent = _sent_deal_payload(method, {'immobilie_id': None, 'contact_id': None})
+
+    assert sent['immobilie_ids'] == []
+    assert sent['contact_ids'] == []
+
+
+@pytest.mark.parametrize('method', ['create', 'update'])
+def test_deals_legacy_name_equal_to_real_field_is_accepted(method):
+    sent = _sent_deal_payload(method, {'name': 'A', 'title': 'A', 'contact_ids': ['c-1'], 'contact_id': 'c-1'})
+
+    assert sent['name'] == 'A'
+    assert sent['contact_ids'] == ['c-1']
+    assert 'title' not in sent and 'contact_id' not in sent
+
+
+@pytest.mark.parametrize('method', ['create', 'update'])
+@pytest.mark.parametrize('data', [
+    {'name': 'A', 'title': 'B'},
+    {'deal_amount': 1, 'value': 2},
+    {'immobilie_ids': ['imm-1'], 'immobilie_id': 'imm-2'},
+    {'contact_ids': ['c-1', 'c-2'], 'contact_id': 'c-1'},
+])
+def test_deals_conflicting_legacy_and_real_field_is_rejected(method, data):
+    """Never silently drop one of two contradicting values."""
+    with pytest.raises(ValueError, match='widersprüchlich'):
+        _sent_deal_payload(method, data)
+
+
+@pytest.mark.parametrize('method', ['create', 'update'])
+def test_deals_pipeline_id_is_rejected_with_status_hint(method):
+    """A deal has no pipeline field — the pipeline follows from status_id.
+    Mapping is impossible (which status?), dropping would hide the intent."""
+    with pytest.raises(ValueError, match='status_id'):
+        _sent_deal_payload(method, {'name': 'A', 'pipeline_id': 3})
+
+
+def test_deals_create_does_not_mutate_input():
+    original = {'title': 'A', 'immobilie_id': 'imm-1'}
+    _sent_deal_payload('create', original)
+    assert original == {'title': 'A', 'immobilie_id': 'imm-1'}
 
 
 def test_deals_update_uses_patch():
