@@ -54,14 +54,19 @@ def register(mcp):
 
         data: JSON object with:
 
-        Common fields:
+        Fields (unknown keys are rejected with HTTP 400):
         - first_name, last_name: string
         - email: string
         - phone, mobile: string (any format)
-        - company, position: string
-        - address: string
-        - notes: string
-        - tags: list of tag UUID strings
+        - company: string
+        - role: string, the contact's function (e.g. Makler, Eigentümer)
+        - salutation, website, address, notes: string
+        - status_id: integer, a status of the organisation's contact pipeline
+        - tag_ids: list of tag UUID strings (tags of the same organisation)
+
+        There is no "position" field. Custom field values are not part of
+        this payload; set them afterwards with custom_fields_values_set
+        (model "contact", target_id = the new contact's id).
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -81,10 +86,12 @@ def register(mcp):
         organisation_id=None,
         base_url=None,
     ):
-        """Update an existing contact (full replace — include all fields you want to keep).
+        """Update an existing contact (partial update).
 
         contact_id: UUID of the contact.
-        data: same fields as contacts_create. Omitted fields may be cleared.
+        data: any of the contacts_create fields except tag_ids; omitted fields
+        stay unchanged. Change tags with tags_update_entity (entity_type
+        "contacts"), the status with contacts_update_status.
         """
 
         payload = _require_dict(field_name='data', value=data)
