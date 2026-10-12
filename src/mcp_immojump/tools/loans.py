@@ -30,20 +30,25 @@ def register(mcp):
         data: JSON object with:
 
         Required:
-        - immobilie_id: integer ID of the property
-        - loan_amount: number (EUR)
-        - interest_rate: number (percent, e.g. 3.5)
+        - immobilie_id: property ID (UUID string)
+        - principal: loan amount in EUR, e.g. 250000
+        - interest_rate: nominal rate as a FRACTION, not percent:
+          3.5 % = 0.035, 0 % allowed. Values >= 0.25 are rejected (400).
+        - amortization_rate: initial repayment as a fraction (2 % = 0.02)
         - start_date: date string "YYYY-MM-DD", e.g. "2026-01-01"
           (full datetimes are auto-truncated to date)
 
         Optional:
+        - name: string, e.g. "Sparkasse Hauptdarlehen"
         - bank_name: string
-        - repayment_rate: number (percent, e.g. 2.0)
-        - term_years: integer
         - amortization_start_date: date string "YYYY-MM-DD" (if repayment
           starts later than start_date)
-        - type: annuity, bullet, or endfaellig
-        - notes: string
+        - fixed_rate_years: integer (Zinsbindung)
+        - term_years: integer
+        - payment_frequency_months: integer, default 1 (monthly)
+
+        Invalid or missing values answer 400 with a German `message` and the
+        offending fields under `errors`.
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -65,7 +70,7 @@ def register(mcp):
     ):
         """Update an existing loan (partial — only provided fields change).
 
-        loan_id: integer ID of the loan.
+        loan_id: loan ID (UUID string) as returned by loans_create/loans_list.
         data: same fields as loans_create. Date fields accept "YYYY-MM-DD" format.
         """
 
