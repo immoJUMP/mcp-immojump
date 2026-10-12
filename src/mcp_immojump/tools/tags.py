@@ -91,7 +91,7 @@ def register(mcp):
     ):
         """Get tags assigned to an entity.
 
-        entity_type: immobilie, contact, deal, etc.
+        entity_type: immobilie, contacts, or activities.
         entity_id: the entity's UUID.
         """
 
@@ -114,7 +114,7 @@ def register(mcp):
     ):
         """Set the tags for an entity (replaces existing tags).
 
-        entity_type: immobilie, contact, deal, etc.
+        entity_type: immobilie, contacts, or activities.
         entity_id: the entity's UUID.
         tag_ids: list of tag UUIDs to assign (replaces all existing tags).
         """
