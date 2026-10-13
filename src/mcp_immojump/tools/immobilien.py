@@ -186,7 +186,10 @@ def register(mcp):
           (default ETW). German labels such as "Mehrfamilienhaus" are accepted;
           anything else is rejected with HTTP 400 and valid_values.
         - daten: the property data, e.g. {"adresse": "Roermonder Str. 15,
-          52072 Aachen", "kaufpreis": 380000, "baujahr": 1965}
+          52072 Aachen", "kaufpreis": 380000, "baujahr": 1965, "qm": 85}.
+          The living area is "qm" (m2), rents are "ist_miete"/"soll_miete"
+          (per month). The calculation reads both from the property's units:
+          check the start unit "Einheit 1" with units_list.
         - status_id: pipeline status to place the property in
         """
 
@@ -242,7 +245,12 @@ def register(mcp):
         the pipeline status.
 
         Only include the fields you want to modify, e.g.
-        {"kaufpreis": 350000, "wohnflaeche": 85}
+        {"kaufpreis": 350000, "qm": 85}
+        The living area ("qm", m2) and the rents ("ist_miete", "soll_miete",
+        per month) are written into the property's unit, because the
+        calculation reads the units. With several units, set them per unit
+        with units_update: a patch with only these fields returns 409, mixed
+        with other fields they are skipped with a warning.
         type takes the property type code ETW, EFH, MFH, WGH, GEW or Sonstiges
         (German labels such as "Gewerbe" are accepted).
         """
