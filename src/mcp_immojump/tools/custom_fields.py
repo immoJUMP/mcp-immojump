@@ -247,6 +247,10 @@ def register(mcp):
         target_id: the entity's UUID.
         values: dict mapping definition_id -> value.
           Pass null as value to delete a field value.
+          Take the IDs from custom_fields_definitions_list (same model). An
+          unknown ID rejects the whole request with HTTP 400, code
+          UNKNOWN_CUSTOM_FIELD, listing unknown_ids and valid_fields — nothing
+          is written then.
 
         Example:
           {"def-uuid-1": "some text", "def-uuid-2": 42.5, "def-uuid-3": null}

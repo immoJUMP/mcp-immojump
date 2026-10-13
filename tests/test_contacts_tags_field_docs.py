@@ -51,3 +51,10 @@ def test_tag_entity_tools_name_the_routes_entity_types(tools, tool_name) -> None
     for value in ('immobilie', 'contacts', 'activities'):
         assert value in description, f'{tool_name} does not name {value}'
     assert 'deal' not in description
+
+
+def test_custom_fields_values_set_names_the_400_for_unknown_ids(tools) -> None:
+    """immo-calc lehnt unbekannte Feld-IDs seit 13.10.2026 mit 400 ab (vorher still verworfen)."""
+    description = tools['custom_fields_values_set'].description
+    assert 'UNKNOWN_CUSTOM_FIELD' in description
+    assert 'custom_fields_definitions_list' in description
