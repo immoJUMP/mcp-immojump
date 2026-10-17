@@ -1,4 +1,15 @@
-from .._shared import _call_with_client, _ok, _require_dict, _require_list, destructive_op, read_only, write_op
+from .._shared import (
+    _as_bool,
+    _call_with_client,
+    _id_list,
+    _ok,
+    _require_dict,
+    _require_list,
+    _require_text,
+    destructive_op,
+    read_only,
+    write_op,
+)
 
 
 def register(mcp):
@@ -360,5 +371,142 @@ def register(mcp):
                 unit_ids=ids,
                 target_type=target_type,
             ),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=read_only())
+    def immobilien_merge_preview(
+        immobilie_ids,
+        primary_id=None,
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """Step 1 of merging duplicate properties: show what a merge would do. Changes nothing.
+
+        Always call this before immobilien_merge and show the conflicts to the user.
+
+        - immobilie_ids: list of 2 to 10 property IDs of the same organisation
+        - primary_id: the property to keep (must be in immobilie_ids); default is
+          the oldest one, because it usually carries the history
+
+        Returns primary_id, properties (name, address, attached counts),
+        can_merge (false = you lack update on the primary or delete on a duplicate),
+        conflicts (fields where several properties hold different values; each
+        with field, label, default and the candidate values per immobilie_id),
+        filled (empty fields of the primary that get filled automatically) and
+        blocks (einheiten, kalkulation, finanzierung — only listed when more than
+        one property has data; each block comes as a whole from ONE property).
+        Unknown or foreign IDs return 404.
+        """
+
+        ids = _id_list(field_name='immobilie_ids', value=immobilie_ids)
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.immobilien_merge_preview(
+                immobilie_ids=ids,
+                primary_id=primary_id,
+            ),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=destructive_op())
+    def immobilien_merge(
+        primary_id,
+        duplicate_ids,
+        field_choices=None,
+        block_choices=None,
+        include_documents=True,
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """Step 2: merge duplicate properties into one. Call immobilien_merge_preview first.
+
+        - primary_id: the property that stays
+        - duplicate_ids: list of 1 to 9 property IDs merged into it
+        - field_choices: {field: immobilie_id} answering the preview's conflicts,
+          e.g. {"name": "<id>", "asking_price": "<id>"}. Fields: name, type,
+          status_id, adresse, baujahr, grundstueck, asking_price,
+          acquisition_price, sale_price, target_sale_price
+        - block_choices: {block: immobilie_id}, blocks: einheiten (units and rent
+          roll), kalkulation (calculation and costs), finanzierung (loans). A
+          block is taken as a whole from the chosen property, never mixed.
+        - include_documents: move documents and images to the primary (default
+          true); false leaves them on the duplicates
+        Unanswered conflicts take the preview's default. Everything else
+        (activities, tags, milestones, shares, valuations, ...) moves to the
+        primary, notes are appended.
+
+        The duplicates go to the trash (soft delete), they are not destroyed.
+        The response carries log_id; immobilien_merge_restore with it undoes the
+        merge. Needs update on the primary and delete on every duplicate (403).
+        """
+
+        dup_ids = _id_list(field_name='duplicate_ids', value=duplicate_ids)
+        fields_ = _require_dict(field_name='field_choices', value=field_choices) if field_choices else {}
+        blocks = _require_dict(field_name='block_choices', value=block_choices) if block_choices else {}
+        documents = _as_bool(field_name='include_documents', value=include_documents)
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.immobilien_merge(
+                primary_id=_require_text(field_name='primary_id', value=primary_id),
+                duplicate_ids=dup_ids,
+                field_choices=fields_,
+                block_choices=blocks,
+                include_documents=documents,
+            ),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=read_only())
+    def immobilien_merge_logs(
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """List the last 50 property merges of the organisation.
+
+        Each entry: id (the log_id for immobilien_merge_restore), created_at,
+        primary and duplicates (id + name), restored_at and restorable (false
+        once undone or when a duplicate was taken out of the trash meanwhile).
+        """
+
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.immobilien_merge_logs(),
+        )
+        return _ok(result)
+
+    @mcp.tool(annotations=write_op())
+    def immobilien_merge_restore(
+        log_id,
+        token=None,
+        organisation_id=None,
+        base_url=None,
+    ):
+        """Undo a property merge: the duplicates come back from the trash and
+        moved data returns to them.
+
+        - log_id: the "id" of an entry from immobilien_merge_logs, or the log_id
+          returned by immobilien_merge
+
+        Values changed on the primary after the merge stay as they are; the
+        response lists them in kept_fields. A merge can be undone once (409
+        afterwards). Needs update on the primary and unrestricted delete rights.
+        """
+
+        log = _require_text(field_name='log_id', value=log_id)
+        result = _call_with_client(
+            base_url=base_url,
+            token=token,
+            organisation_id=organisation_id,
+            callback=lambda client: client.immobilien_merge_restore(log_id=log),
         )
         return _ok(result)
