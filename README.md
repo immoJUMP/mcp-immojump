@@ -36,6 +36,8 @@ Abgedeckt (Standard-Tier, 87 Tools):
 
 - Kontakte inkl. Import (Preview/Commit), Dubletten-Merge, Activities
 - Immobilien inkl. Suche, Units, Milestones, Dokumente
+- Doppelte Immobilien zusammenfuehren (Vorschau, Ausfuehren, Protokoll,
+  Rueckgaengig; Dubletten landen im Papierkorb)
 - Pipeline- und Status-Management (CRUD, Reorder, Inbound-Aliases)
 - Activity-Templates inkl. sicherem Outcome-Update mit Dry-Run
 - Tags auf Entity-Ebene
@@ -108,7 +110,7 @@ Domain-Gliederung (je ein Modul unter `src/mcp_immojump/tools/`):
 | Modul | Tools | Inhalt |
 |-------|------:|--------|
 | `connection` | 1 | Credential-Check |
-| `immobilien` | 12 | Immobilien + Units-Split + Transfer |
+| `immobilien` | 20 | Immobilien + Units-Split + Transfer + Zusammenfuehren |
 | `units` | 5 | Einheiten pro Immobilie |
 | `contacts` | 19 | CRUD, Import, Dubletten, Merge |
 | `activities` | 11 | Aktivitaeten inkl. Property-Bindung |
