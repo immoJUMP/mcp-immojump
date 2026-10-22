@@ -78,6 +78,12 @@ def register(mcp):
         - order: sort position in the rent roll, a whole number; leave it out to
           append the unit at the end, after "Einheit 1"
         - lease_start_date, last_rent_increase_date: YYYY-MM-DD or DD.MM.YYYY
+        - soll_rent_from: date from which the forecast (Prognose) uses soll_rent
+          instead of ist_rent, e.g. a re-letting or rent increase planned for
+          2027-07-01; YYYY-MM-DD or DD.MM.YYYY, null or left out = no change planned
+        - planned_sale_date: planned single sale of this unit; the forecast sells
+          it at the end of that month at the price of the Aufteiler calculation;
+          YYYY-MM-DD or DD.MM.YYYY, null or left out = not sold
         """
 
         payload = _require_dict(field_name='data', value=data)
@@ -119,6 +125,12 @@ def register(mcp):
         - order: sort position in the rent roll
         - lease_start_date, last_rent_increase_date: YYYY-MM-DD or
           DD.MM.YYYY; null clears the date
+        - soll_rent_from: date from which the forecast (Prognose) uses soll_rent
+          instead of ist_rent, e.g. a re-letting or rent increase planned for
+          2027-07-01; YYYY-MM-DD or DD.MM.YYYY, null removes the plan
+        - planned_sale_date: planned single sale of this unit; the forecast sells
+          it at the end of that month at the price of the Aufteiler calculation;
+          YYYY-MM-DD or DD.MM.YYYY, null removes the sale
         """
 
         payload = _require_dict(field_name='data', value=data)

@@ -33,6 +33,8 @@ BACKEND_FIELDS = (
     'order',
     'lease_start_date',
     'last_rent_increase_date',
+    'soll_rent_from',
+    'planned_sale_date',
 )
 UNIT_TYPES = ('wohnen', 'gewerbe', 'stellplatz', 'garage', 'sonstiges')
 # Keys the old description advertised. The backend never read any of them.
@@ -159,3 +161,23 @@ def test_unit_write_tools_ask_for_a_decimal_point(tools, tool_name) -> None:
     description = tools[tool_name].description
     assert '62.5' in description
     assert '"62,5"' in description
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+def test_soll_rent_from_says_when_the_target_rent_starts(tools, tool_name) -> None:
+    """Forecast planning (immo-calc Prognose, 10/2026): from soll_rent_from on, the
+    forecast uses soll_rent instead of ist_rent, e.g. a re-letting in July 2027.
+    Without it the agent can only overwrite ist_rent and loses today's rent."""
+    line = _field_line(tools[tool_name].description, 'soll_rent_from')
+    for term in ('soll_rent', 'ist_rent', 'YYYY-MM-DD', 'DD.MM.YYYY', 'null'):
+        assert term in line, f'{tool_name}: soll_rent_from does not mention {term}'
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+def test_planned_sale_date_is_a_sale_at_month_end(tools, tool_name) -> None:
+    """Single-unit sale (immo-calc Einzelverkauf, 10/2026): the forecast sells the unit
+    at the end of the month of planned_sale_date; the price comes from the
+    Aufteiler calculation, not from this field."""
+    line = _field_line(tools[tool_name].description, 'planned_sale_date')
+    for term in ('end of', 'month', 'YYYY-MM-DD', 'DD.MM.YYYY', 'null'):
+        assert term in line, f'{tool_name}: planned_sale_date does not mention {term}'
