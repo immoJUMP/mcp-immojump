@@ -12,7 +12,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .._shared import _resolve_mcp_host, _resolve_mcp_port, ctx_token, ctx_organisation_id
-from ..oauth import create_oauth_routes, decode_access_token
+from ..oauth import create_oauth_routes, decode_access_token, is_sealed_token
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ class _AuthMiddleware:
 
     Supports three auth methods (in order):
     1. Direct headers: Authorization: Bearer <api_token> + X-Organisation-Id: <org>
-    2. OAuth access token: Authorization: Bearer <base64(api_token:org_id)>
+    2. OAuth access token: Authorization: Bearer <sealed or legacy base64 token>
     3. No auth: tools will ask for credentials as parameters
     """
 
@@ -156,29 +156,46 @@ class _OAuthFrontMiddleware:
                 headers = dict(headers_raw)
                 auth = headers.get(b'authorization', b'').decode().strip()
                 if not auth:
-                    server_url = os.getenv('IMMOJUMP_MCP_PUBLIC_URL', '').strip()
-                    if not server_url:
-                        host = next(
-                            (v.decode() for k, v in scope.get('headers', []) if k == b'host'),
-                            'mcp.immojump.de',
-                        )
-                        scheme = next(
-                            (v.decode() for k, v in scope.get('headers', []) if k == b'x-forwarded-proto'),
-                            'https',
-                        )
-                        server_url = f'{scheme}://{host}'
-                    metadata_url = f'{server_url}/.well-known/oauth-protected-resource'
-                    resp = Response(
-                        content='Unauthorized',
-                        status_code=401,
-                        headers={
-                            'WWW-Authenticate': f'Bearer resource_metadata="{metadata_url}", scope="immojump"',
-                        },
-                    )
-                    await resp(scope, receive, send)
+                    await self._unauthorized(scope, receive, send)
+                    return
+                # Expired or foreign sealed OAuth token → 401 invalid_token, so
+                # the client uses its refresh_token instead of failing every
+                # tool call with a backend 401 it cannot act on.
+                bearer = auth[7:].strip() if auth.lower().startswith('bearer ') else ''
+                if (
+                    bearer
+                    and is_sealed_token(bearer)
+                    and not headers.get(b'x-organisation-id')
+                    and decode_access_token(bearer) is None
+                ):
+                    await self._unauthorized(scope, receive, send, error='invalid_token')
                     return
 
         await self.mcp_app(scope, receive, send)
+
+    @staticmethod
+    async def _unauthorized(scope: Scope, receive: Receive, send: Send, error: str = '') -> None:
+        server_url = os.getenv('IMMOJUMP_MCP_PUBLIC_URL', '').strip()
+        if not server_url:
+            host = next(
+                (v.decode() for k, v in scope.get('headers', []) if k == b'host'),
+                'mcp.immojump.de',
+            )
+            scheme = next(
+                (v.decode() for k, v in scope.get('headers', []) if k == b'x-forwarded-proto'),
+                'https',
+            )
+            server_url = f'{scheme}://{host}'
+        metadata_url = f'{server_url}/.well-known/oauth-protected-resource'
+        challenge = f'Bearer resource_metadata="{metadata_url}", scope="immojump"'
+        if error:
+            challenge = f'Bearer error="{error}", resource_metadata="{metadata_url}", scope="immojump"'
+        resp = Response(
+            content='Unauthorized',
+            status_code=401,
+            headers={'WWW-Authenticate': challenge},
+        )
+        await resp(scope, receive, send)
 
 
 def create_server(name: str) -> FastMCP:

@@ -31,6 +31,9 @@ Entry points (`pyproject.toml` `[project.scripts]`): `mcp-immojump` (full),
 - `src/mcp_immojump/client.py` — `ImmojumpAPIClient` + `ImmojumpCredentials`.
 - `src/mcp_immojump/_shared.py` — credential resolution + MCP tool annotations.
 - `src/mcp_immojump/oauth.py` — interactive OAuth flow for end-user clients.
+  Stateless: codes, client_ids and tokens are Fernet-sealed with
+  `IMMOJUMP_MCP_OAUTH_SECRET`; never add in-memory OAuth state (rolling
+  updates run two pods). Without the secret: no refresh_token, error log.
 
 ## Authentication
 

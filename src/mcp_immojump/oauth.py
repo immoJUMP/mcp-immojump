@@ -8,8 +8,19 @@ Flow:
 2. Client discovers auth server via /.well-known/oauth-protected-resource
 3. Client opens /oauth/authorize in browser → user enters API token + org
 4. Server redirects back with authorization code
-5. Client exchanges code for access_token via /oauth/token (with PKCE)
-6. access_token = base64({api_token}:{org_id}) — used in subsequent requests
+5. Client exchanges code for access_token + refresh_token via /oauth/token (PKCE)
+6. Before the access token runs out the client trades the refresh_token for a
+   new pair — no user needed, which is what ChatGPT's scheduled tasks rely on.
+
+Stateless by design: codes, client registrations, access and refresh tokens
+are sealed (Fernet = AES-CBC + HMAC-SHA256) with ``IMMOJUMP_MCP_OAUTH_SECRET``.
+Any pod with the same secret can read them, so a rollout or a second pod
+mid-flow no longer loses anything, and the API token never appears in clear
+in anything handed to the client.
+
+Without the secret the server keeps the old behaviour (base64 access token,
+no refresh grant) and logs an error: clients then have to log in again after
+``expires_in``.
 """
 
 from __future__ import annotations
@@ -17,45 +28,134 @@ from __future__ import annotations
 import base64
 import hashlib
 import html
+import json
 import logging
 import os
 import secrets
 import time
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
+import httpx
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 
 logger = logging.getLogger(__name__)
 
-# Auth codes expire after 5 minutes, keyed by code → {token, org_id, code_challenge, expires, redirect_uri, client_id}
-_auth_codes: dict[str, dict[str, Any]] = {}
+_SECRET_ENV = 'IMMOJUMP_MCP_OAUTH_SECRET'
+_MIN_SECRET_LENGTH = 32
 
-# Registered clients from DCR, keyed by client_id → {redirect_uris, ...}
-_registered_clients: dict[str, dict[str, Any]] = {}
+# Everything this server seals starts with this, so the middleware can tell a
+# sealed access token (→ 401 when expired) from a raw immoJUMP API token.
+_SEALED_PREFIX = 'ijm1.'
 
-# Cleanup stale codes every request (simple, no background thread needed)
 _CODE_TTL = 300  # 5 minutes
+_ACCESS_TTL = 24 * 3600
+_REFRESH_TTL = 90 * 24 * 3600  # sliding: every refresh issues a new one
+_CLIENT_TTL = 10 * 365 * 24 * 3600  # registrations practically never expire
+
+_LEGACY_EXPIRES_IN = 86400
+
+_READ_ONLY_TOKEN_PREFIX = 'ijr_'
+
+# Fernet tokens are not single-use by themselves. Within one pod a code can
+# be redeemed once; across pods PKCE and the 5-minute lifetime have to do.
+_used_codes: dict[str, float] = {}
+
+_fernet: MultiFernet | None = None
+_persistent_secret = False
 
 # Security headers applied to every HTML response rendered by this module.
 # The authorize page accepts a user-entered API token, so it must never be
-# embeddable (clickjacking) and must disable referrer leakage.
+# embeddable (clickjacking), must disable referrer leakage, and must not be
+# cached (the read-only confirmation carries the token in a hidden field).
 _LOGIN_SECURITY_HEADERS = {
     'X-Frame-Options': 'DENY',
     'Content-Security-Policy': "default-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'",
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'no-store',
 }
 
+# RFC 6749 §5.1: token responses must not be cached.
+_TOKEN_HEADERS = {'Cache-Control': 'no-store', 'Pragma': 'no-cache'}
 
-def _cleanup_codes() -> None:
-    now = time.time()
-    expired = [k for k, v in _auth_codes.items() if v['expires'] < now]
-    for k in expired:
-        del _auth_codes[k]
 
+# ---------------------------------------------------------------------------
+# Sealing
+# ---------------------------------------------------------------------------
+
+def _derive_key(secret: str) -> Fernet:
+    digest = hashlib.sha256(b'mcp-immojump-oauth-v1|' + secret.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(digest))
+
+
+def _keys() -> MultiFernet:
+    """Comma-separated secrets: the first seals, all of them unseal (rotation)."""
+    global _fernet, _persistent_secret
+    if _fernet is not None:
+        return _fernet
+    configured = [s.strip() for s in os.getenv(_SECRET_ENV, '').split(',') if s.strip()]
+    usable = [s for s in configured if len(s) >= _MIN_SECRET_LENGTH]
+    if len(usable) != len(configured):
+        logger.error('%s: Schlüssel unter %d Zeichen werden ignoriert.', _SECRET_ENV, _MIN_SECRET_LENGTH)
+    if usable:
+        _fernet = MultiFernet([_derive_key(s) for s in usable])
+        _persistent_secret = True
+    else:
+        # Codes and client registrations still work within this process;
+        # access tokens fall back to the legacy format and there is no refresh.
+        _fernet = MultiFernet([Fernet(Fernet.generate_key())])
+        _persistent_secret = False
+        logger.error(
+            '%s ist nicht gesetzt: kein refresh_token, Clients müssen sich nach %d s neu '
+            'anmelden, und ein Neustart mitten im Login verliert den Code.',
+            _SECRET_ENV, _LEGACY_EXPIRES_IN,
+        )
+    return _fernet
+
+
+def _refresh_supported() -> bool:
+    _keys()
+    return _persistent_secret
+
+
+def _reset_keys_for_tests() -> None:
+    global _fernet, _persistent_secret
+    _fernet = None
+    _persistent_secret = False
+    _used_codes.clear()
+
+
+def _seal(typ: str, data: dict[str, Any]) -> str:
+    payload = json.dumps({'typ': typ, **data}, separators=(',', ':')).encode()
+    return _SEALED_PREFIX + _keys().encrypt_at_time(payload, int(time.time())).decode()
+
+
+def _unseal(value: str, typ: str, ttl: int) -> dict[str, Any] | None:
+    if not isinstance(value, str) or not value.startswith(_SEALED_PREFIX):
+        return None
+    try:
+        raw = _keys().decrypt_at_time(
+            value[len(_SEALED_PREFIX):].encode(), ttl=ttl, current_time=int(time.time()),
+        )
+    except InvalidToken:
+        return None
+    data = json.loads(raw)
+    if not isinstance(data, dict) or data.get('typ') != typ:
+        return None
+    return data
+
+
+def is_sealed_token(value: str) -> bool:
+    return value.startswith(_SEALED_PREFIX)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _get_server_url(request: Request) -> str:
     """Derive the public server URL from the request."""
@@ -72,27 +172,35 @@ def _get_server_url(request: Request) -> str:
 
 
 def _encode_access_token(api_token: str, org_id: str) -> str:
-    """Encode API token + org_id into a single access_token string."""
+    """Legacy access token: base64 of ``api_token:org_id`` — readable by anyone."""
     return base64.urlsafe_b64encode(f'{api_token}:{org_id}'.encode()).decode()
 
 
 def decode_access_token(access_token: str) -> tuple[str, str] | None:
-    """Decode access_token back to (api_token, org_id). Returns None on failure."""
+    """Decode access_token back to (api_token, org_id). Returns None on failure.
+
+    Sealed tokens are checked for integrity and lifetime. Legacy base64 tokens
+    are still accepted so existing connections keep working: whoever holds
+    one already holds the API token, which works directly via headers anyway.
+    """
+    if is_sealed_token(access_token):
+        data = _unseal(access_token, 'access', _ACCESS_TTL)
+        if not data:
+            return None
+        return data['t'], data['o']
     try:
         decoded = base64.urlsafe_b64decode(access_token.encode()).decode()
-        if ':' not in decoded:
-            return None
-        # Org ID is always a UUID (36 chars) at the end after the last ':'
-        last_colon = decoded.rfind(':')
-        if last_colon <= 0:
-            return None
-        api_token = decoded[:last_colon]
-        org_id = decoded[last_colon + 1:]
-        if not api_token or not org_id:
-            return None
-        return api_token, org_id
-    except Exception:
+    except (ValueError, UnicodeDecodeError):
         return None
+    # Org ID is always a UUID at the end after the last ':'
+    last_colon = decoded.rfind(':')
+    if last_colon <= 0:
+        return None
+    api_token = decoded[:last_colon]
+    org_id = decoded[last_colon + 1:]
+    if not api_token or not org_id:
+        return None
+    return api_token, org_id
 
 
 def _verify_pkce(code_verifier: str, code_challenge: str) -> bool:
@@ -100,6 +208,178 @@ def _verify_pkce(code_verifier: str, code_challenge: str) -> bool:
     digest = hashlib.sha256(code_verifier.encode('ascii')).digest()
     expected = base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii')
     return secrets.compare_digest(expected, code_challenge)
+
+
+def _redirect_not_registered(client_id: str, redirect_uri: str) -> bool:
+    """True if client_id is one of our registrations and doesn't list redirect_uri.
+
+    Unknown client_ids (self-chosen at registration, or from before this
+    version) are not checked — same as before.
+    """
+    registration = _unseal(client_id, 'client', _CLIENT_TTL)
+    if not registration:
+        return False
+    allowed = registration.get('ru') or []
+    return bool(allowed) and redirect_uri not in allowed
+
+
+def _backend_rejects_token(api_token: str, org_id: str) -> bool:
+    """Ask immoJUMP whether the API token is still valid (best effort).
+
+    Only an explicit 401 counts as rejection; an unreachable backend must not
+    lock users out — tool calls will surface that error themselves.
+    """
+    base_url = os.getenv('IMMOJUMP_BASE_URL', 'https://immojump.de')
+    try:
+        resp = httpx.get(
+            f'{base_url}/api/contacts/count',
+            params={'organisation_id': org_id},
+            headers={'Authorization': f'Bearer {api_token}', 'X-Organisation-Id': org_id},
+            timeout=10,
+        )
+    except (httpx.HTTPError, OSError) as exc:
+        logger.warning('Token-Prüfung gegen %s nicht möglich: %s', base_url, exc)
+        return False
+    return resp.status_code == 401
+
+
+def _issue_tokens(api_token: str, org_id: str, client_id: str) -> JSONResponse:
+    if not _refresh_supported():
+        return JSONResponse({
+            'access_token': _encode_access_token(api_token, org_id),
+            'token_type': 'bearer',
+            'scope': 'immojump',
+            'expires_in': _LEGACY_EXPIRES_IN,
+        }, headers=_TOKEN_HEADERS)
+    return JSONResponse({
+        'access_token': _seal('access', {'t': api_token, 'o': org_id}),
+        'token_type': 'bearer',
+        'scope': 'immojump',
+        'expires_in': _ACCESS_TTL,
+        'refresh_token': _seal('refresh', {'t': api_token, 'o': org_id, 'cid': client_id}),
+    }, headers=_TOKEN_HEADERS)
+
+
+def _grant_error(error: str, description: str) -> JSONResponse:
+    return JSONResponse(
+        {'error': error, 'error_description': description}, status_code=400, headers=_TOKEN_HEADERS,
+    )
+
+
+def _html_error(message: str) -> HTMLResponse:
+    return HTMLResponse(
+        f'<h1>{html.escape(message)}</h1>', status_code=400, headers=_LOGIN_SECURITY_HEADERS,
+    )
+
+
+def _grant_types() -> list[str]:
+    if _refresh_supported():
+        return ['authorization_code', 'refresh_token']
+    return ['authorization_code']
+
+
+# ---------------------------------------------------------------------------
+# Authorize page
+# ---------------------------------------------------------------------------
+
+_PAGE_STYLE = """
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+               background: #f5f7fa; display: flex; justify-content: center; align-items: center;
+               min-height: 100vh; padding: 20px; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+                padding: 40px; max-width: 440px; width: 100%; }
+        .logo { text-align: center; margin-bottom: 24px; font-size: 28px; font-weight: 700; color: #1a1a2e; }
+        .logo span { color: #4361ee; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 24px; font-size: 15px; line-height: 1.5; }
+        .note { background: #f0f4ff; border-radius: 10px; padding: 12px 16px; margin-bottom: 24px;
+                font-size: 14px; line-height: 1.5; color: #333; }
+        .note.warn { background: #fff6e5; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; color: #333; font-size: 14px; }
+        input { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px;
+                font-size: 15px; transition: border-color 0.2s; margin-bottom: 20px; }
+        input:focus { outline: none; border-color: #4361ee; }
+        .hint { font-size: 12px; color: #888; margin-top: -16px; margin-bottom: 20px; }
+        button { width: 100%; padding: 14px; background: #4361ee; color: white; border: none;
+                 border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+                 transition: background 0.2s; }
+        button:hover { background: #3451d1; }
+        button.secondary { background: white; color: #4361ee; border: 2px solid #4361ee; margin-top: 12px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #aaa; }
+"""
+
+
+def _page(body: str) -> HTMLResponse:
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>immoJUMP verbinden</title>
+    <style>{_PAGE_STYLE}</style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">immo<span>JUMP</span></div>
+{body}
+    </div>
+</body>
+</html>""", headers=_LOGIN_SECURITY_HEADERS)
+
+
+def _hidden(fields: dict[str, str]) -> str:
+    return '\n'.join(
+        f'            <input type="hidden" name="{name}" value="{html.escape(value)}">'
+        for name, value in fields.items()
+    )
+
+
+def _return_host(redirect_uri: str) -> str:
+    return urlparse(redirect_uri).hostname or redirect_uri
+
+
+def _login_form(oauth_params: dict[str, str]) -> HTMLResponse:
+    host = html.escape(_return_host(oauth_params['redirect_uri']))
+    return _page(f"""
+        <p class="subtitle">Verbinde deine KI-App mit deinem immoJUMP-Konto.<br>
+        Danach geht es zurück zu <strong>{host}</strong>.</p>
+        <p class="note">Den Zugangsschlüssel legst du in immoJUMP unter
+        <strong>Einstellungen → Schnittstellen-Zugang → Zugänge für andere</strong> an.
+        Soll die KI Objekte, Kontakte oder Deals auch <strong>anlegen oder ändern</strong>,
+        wähle dort <strong>„Lesen und ändern“</strong>. Mit „Nur lesen“ kann sie nur abfragen.</p>
+        <form method="POST" action="/oauth/authorize">
+{_hidden(oauth_params)}
+
+            <label for="api_token">Zugangsschlüssel</label>
+            <input type="password" id="api_token" name="api_token"
+                   placeholder="ijw_…" autocomplete="off" required>
+            <p class="hint">Beginnt mit ijw_ (lesen und ändern) oder ijr_ (nur lesen).</p>
+
+            <label for="org_id">Organisations-ID</label>
+            <input type="text" id="org_id" name="org_id"
+                   placeholder="abc12345-de67-89ab-cdef-…" required>
+            <p class="hint">Steht ebenfalls unter Einstellungen → Schnittstellen-Zugang.</p>
+
+            <button type="submit">Verbinden</button>
+        </form>
+        <p class="footer">Dein Schlüssel wird nur für diese Verbindung verwendet.</p>""")
+
+
+def _read_only_confirmation(oauth_params: dict[str, str], api_token: str, org_id: str) -> HTMLResponse:
+    return _page(f"""
+        <p class="note warn"><strong>Dieser Schlüssel darf nur lesen.</strong><br>
+        Die KI kann damit Objekte, Kontakte und Deals abfragen, aber nichts anlegen
+        oder ändern — auch nicht in geplanten Aufgaben. Dafür brauchst du einen Zugang mit
+        <strong>„Lesen und ändern“</strong> (Einstellungen → Schnittstellen-Zugang →
+        Zugänge für andere).</p>
+        <form method="GET" action="/oauth/authorize">
+{_hidden(oauth_params)}
+            <button type="submit">Anderen Schlüssel eingeben</button>
+        </form>
+        <form method="POST" action="/oauth/authorize">
+{_hidden({**oauth_params, 'api_token': api_token, 'org_id': org_id, 'confirm_read_only': '1'})}
+            <button type="submit" class="secondary">Trotzdem nur lesend verbinden</button>
+        </form>""")
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +406,7 @@ async def authorization_server_metadata(request: Request) -> JSONResponse:
         'token_endpoint': f'{server_url}/oauth/token',
         'registration_endpoint': f'{server_url}/oauth/register',
         'response_types_supported': ['code'],
-        'grant_types_supported': ['authorization_code'],
+        'grant_types_supported': _grant_types(),
         'code_challenge_methods_supported': ['S256'],
         'scopes_supported': ['immojump'],
         'token_endpoint_auth_methods_supported': ['none'],
@@ -137,232 +417,173 @@ async def authorization_server_metadata(request: Request) -> JSONResponse:
 async def authorize(request: Request) -> Response:
     """Authorization endpoint — shows form or processes submission."""
     if request.method == 'GET':
-        # Extract OAuth params
-        client_id = request.query_params.get('client_id', '')
-        redirect_uri = request.query_params.get('redirect_uri', '')
-        state = request.query_params.get('state', '')
-        code_challenge = request.query_params.get('code_challenge', '')
-        code_challenge_method = request.query_params.get('code_challenge_method', '')
-        scope = request.query_params.get('scope', '')
+        params = request.query_params
+        oauth_params = {
+            'client_id': params.get('client_id', ''),
+            'redirect_uri': params.get('redirect_uri', ''),
+            'state': params.get('state', ''),
+            'code_challenge': params.get('code_challenge', ''),
+            'scope': params.get('scope', ''),
+        }
+        code_challenge_method = params.get('code_challenge_method', '')
 
-        if not redirect_uri:
-            return HTMLResponse(
-                '<h1>Fehler: redirect_uri fehlt</h1>',
-                status_code=400,
-                headers=_LOGIN_SECURITY_HEADERS,
-            )
+        if not oauth_params['redirect_uri']:
+            return _html_error('Fehler: redirect_uri fehlt')
         if code_challenge_method and code_challenge_method != 'S256':
-            return HTMLResponse(
-                '<h1>Fehler: Nur S256 PKCE wird unterstützt</h1>',
-                status_code=400,
-                headers=_LOGIN_SECURITY_HEADERS,
-            )
-
-        # Render login form
-        form_html = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>immoJUMP verbinden</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-               background: #f5f7fa; display: flex; justify-content: center; align-items: center;
-               min-height: 100vh; padding: 20px; }}
-        .card {{ background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1);
-                padding: 40px; max-width: 440px; width: 100%; }}
-        .logo {{ text-align: center; margin-bottom: 24px; font-size: 28px; font-weight: 700; color: #1a1a2e; }}
-        .logo span {{ color: #4361ee; }}
-        .subtitle {{ text-align: center; color: #666; margin-bottom: 32px; font-size: 15px; line-height: 1.5; }}
-        label {{ display: block; font-weight: 600; margin-bottom: 6px; color: #333; font-size: 14px; }}
-        input {{ width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px;
-                font-size: 15px; transition: border-color 0.2s; margin-bottom: 20px; }}
-        input:focus {{ outline: none; border-color: #4361ee; }}
-        .hint {{ font-size: 12px; color: #888; margin-top: -16px; margin-bottom: 20px; }}
-        button {{ width: 100%; padding: 14px; background: #4361ee; color: white; border: none;
-                border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
-                transition: background 0.2s; }}
-        button:hover {{ background: #3451d1; }}
-        .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #aaa; }}
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="logo">immo<span>JUMP</span></div>
-        <p class="subtitle">Verbinde deine KI-App mit deinem immoJUMP-Konto.<br>
-        Du brauchst deinen API-Token und deine Organisation-ID.</p>
-        <form method="POST" action="/oauth/authorize">
-            <input type="hidden" name="client_id" value="{html.escape(client_id)}">
-            <input type="hidden" name="redirect_uri" value="{html.escape(redirect_uri)}">
-            <input type="hidden" name="state" value="{html.escape(state)}">
-            <input type="hidden" name="code_challenge" value="{html.escape(code_challenge)}">
-            <input type="hidden" name="scope" value="{html.escape(scope)}">
-
-            <label for="api_token">API-Token</label>
-            <input type="password" id="api_token" name="api_token"
-                   placeholder="eyJhbGci..." required>
-            <p class="hint">Einstellungen → API-Zugang → Token generieren</p>
-
-            <label for="org_id">Organisation-ID</label>
-            <input type="text" id="org_id" name="org_id"
-                   placeholder="abc12345-de67-89ab-cdef-..." required>
-            <p class="hint">Sichtbar in der URL: immojump.de/o/<strong>deine-id</strong>/...</p>
-
-            <button type="submit">Verbinden</button>
-        </form>
-        <p class="footer">Deine Daten werden nur für diese Verbindung verwendet.</p>
-    </div>
-</body>
-</html>"""
-        return HTMLResponse(form_html, headers=_LOGIN_SECURITY_HEADERS)
+            return _html_error('Fehler: Nur S256 PKCE wird unterstützt')
+        if _redirect_not_registered(oauth_params['client_id'], oauth_params['redirect_uri']):
+            return _html_error('Fehler: redirect_uri stimmt nicht mit der Registrierung überein')
+        return _login_form(oauth_params)
 
     # POST: process form submission
     form = await request.form()
     api_token = str(form.get('api_token', '')).strip()
     org_id = str(form.get('org_id', '')).strip()
-    redirect_uri = str(form.get('redirect_uri', '')).strip()
-    state = str(form.get('state', '')).strip()
-    code_challenge = str(form.get('code_challenge', '')).strip()
-    client_id = str(form.get('client_id', '')).strip()
+    oauth_params = {
+        'client_id': str(form.get('client_id', '')).strip(),
+        'redirect_uri': str(form.get('redirect_uri', '')).strip(),
+        'state': str(form.get('state', '')).strip(),
+        'code_challenge': str(form.get('code_challenge', '')).strip(),
+        'scope': str(form.get('scope', '')).strip(),
+    }
+    redirect_uri = oauth_params['redirect_uri']
 
     if not api_token or not org_id:
-        return HTMLResponse(
-            '<h1>Fehler: Token und Organisation-ID sind erforderlich</h1>',
-            status_code=400,
-            headers=_LOGIN_SECURITY_HEADERS,
-        )
+        return _html_error('Fehler: Zugangsschlüssel und Organisations-ID sind erforderlich')
     if not redirect_uri:
+        return _html_error('Fehler: redirect_uri fehlt')
+    if _redirect_not_registered(oauth_params['client_id'], redirect_uri):
+        return _html_error('Fehler: redirect_uri stimmt nicht mit der Registrierung überein')
+
+    if api_token.startswith(_READ_ONLY_TOKEN_PREFIX) and form.get('confirm_read_only') != '1':
+        return _read_only_confirmation(oauth_params, api_token, org_id)
+
+    if _backend_rejects_token(api_token, org_id):
         return HTMLResponse(
-            '<h1>Fehler: redirect_uri fehlt</h1>',
+            '<h1>Ungültiger Zugangsschlüssel</h1>'
+            '<p>Bitte prüfe deinen Zugangsschlüssel und versuche es erneut.</p>',
             status_code=400,
             headers=_LOGIN_SECURITY_HEADERS,
         )
 
-    # Validate redirect_uri against registered client (if DCR was used)
-    if client_id and client_id in _registered_clients:
-        registered = _registered_clients[client_id]
-        if registered['redirect_uris'] and redirect_uri not in registered['redirect_uris']:
-            return HTMLResponse(
-                '<h1>Fehler: redirect_uri stimmt nicht mit der Registrierung überein</h1>',
-                status_code=400,
-                headers=_LOGIN_SECURITY_HEADERS,
-            )
-
-    # Validate token against immoJUMP API (best-effort)
-    import httpx
-    try:
-        base_url = os.getenv('IMMOJUMP_BASE_URL', 'https://immojump.de')
-        resp = httpx.get(
-            f'{base_url}/api/contacts/count',
-            params={'organisation_id': org_id},
-            headers={'Authorization': f'Bearer {api_token}', 'X-Organisation-Id': org_id},
-            timeout=10,
-        )
-        if resp.status_code == 401:
-            return HTMLResponse(
-                '<h1>Ungültiger Token</h1><p>Bitte prüfe deinen API-Token und versuche es erneut.</p>'
-                '<p><a href="javascript:history.back()">Zurück</a></p>',
-                status_code=400,
-                headers=_LOGIN_SECURITY_HEADERS,
-            )
-    except (httpx.ConnectError, httpx.TimeoutException, OSError):
-        pass  # Backend unreachable — skip validation, will fail on actual tool calls
-
-    # Generate auth code
-    _cleanup_codes()
-    code = secrets.token_urlsafe(32)
-    _auth_codes[code] = {
-        'api_token': api_token,
-        'org_id': org_id,
-        'code_challenge': code_challenge,
-        'redirect_uri': redirect_uri,
-        'client_id': client_id,
-        'expires': time.time() + _CODE_TTL,
-    }
+    code = _seal('code', {
+        't': api_token,
+        'o': org_id,
+        'cc': oauth_params['code_challenge'],
+        'ru': redirect_uri,
+        'cid': oauth_params['client_id'],
+    })
 
     # Redirect back to client
-    params = {'code': code}
-    if state:
-        params['state'] = state
+    query = {'code': code}
+    if oauth_params['state']:
+        query['state'] = oauth_params['state']
     separator = '&' if '?' in redirect_uri else '?'
-    return RedirectResponse(f'{redirect_uri}{separator}{urlencode(params)}', status_code=302)
+    return RedirectResponse(f'{redirect_uri}{separator}{urlencode(query)}', status_code=302)
+
+
+def _redeem_once(code: str) -> bool:
+    """Single use per pod; False if this code was already redeemed here."""
+    now = time.time()
+    for key in [k for k, expires in _used_codes.items() if expires < now]:
+        del _used_codes[key]
+    key = hashlib.sha256(code.encode()).hexdigest()
+    if key in _used_codes:
+        return False
+    _used_codes[key] = now + _CODE_TTL + 60
+    return True
+
+
+def _exchange_code(body: dict[str, Any]) -> JSONResponse:
+    code = str(body.get('code', ''))
+    code_verifier = str(body.get('code_verifier', ''))
+    redirect_uri = str(body.get('redirect_uri', ''))
+
+    code_data = _unseal(code, 'code', _CODE_TTL)
+    if not code_data or not _redeem_once(code):
+        return _grant_error('invalid_grant', 'Code expired or invalid')
+
+    # Verify PKCE if challenge was provided
+    if code_data['cc']:
+        if not code_verifier:
+            return _grant_error('invalid_grant', 'code_verifier required')
+        if not _verify_pkce(code_verifier, code_data['cc']):
+            return _grant_error('invalid_grant', 'PKCE verification failed')
+
+    if redirect_uri and redirect_uri != code_data['ru']:
+        return _grant_error('invalid_grant', 'redirect_uri mismatch')
+
+    return _issue_tokens(code_data['t'], code_data['o'], code_data['cid'])
+
+
+def _exchange_refresh_token(body: dict[str, Any]) -> JSONResponse:
+    refresh_token = str(body.get('refresh_token', ''))
+    if not refresh_token:
+        return _grant_error('invalid_request', 'refresh_token required')
+
+    data = _unseal(refresh_token, 'refresh', _REFRESH_TTL)
+    if not data:
+        return _grant_error('invalid_grant', 'Refresh token expired or invalid')
+
+    client_id = str(body.get('client_id', ''))
+    if client_id and data['cid'] and client_id != data['cid']:
+        return _grant_error('invalid_grant', 'Refresh token was issued to another client')
+
+    # The access key may have been deleted in immoJUMP since the last login.
+    if _backend_rejects_token(data['t'], data['o']):
+        return _grant_error('invalid_grant', 'Der Zugangsschlüssel wurde in immoJUMP widerrufen.')
+
+    return _issue_tokens(data['t'], data['o'], data['cid'])
 
 
 async def token(request: Request) -> JSONResponse:
-    """Token endpoint — exchange auth code for access_token."""
-    _cleanup_codes()
-
+    """Token endpoint — authorization_code and refresh_token grants."""
     # Accept both form and JSON
     content_type = request.headers.get('content-type', '')
     if 'json' in content_type:
-        body = await request.json()
+        try:
+            body = await request.json()
+        except ValueError:
+            body = None
     else:
-        form = await request.form()
-        body = dict(form)
+        body = dict(await request.form())
+    if not isinstance(body, dict):
+        return _grant_error('invalid_request', 'Body must be form-encoded or a JSON object')
 
     grant_type = body.get('grant_type', '')
-    code = body.get('code', '')
-    code_verifier = body.get('code_verifier', '')
-    redirect_uri = body.get('redirect_uri', '')
-
-    if grant_type != 'authorization_code':
-        return JSONResponse({'error': 'unsupported_grant_type'}, status_code=400)
-
-    if code not in _auth_codes:
-        return JSONResponse({'error': 'invalid_grant', 'error_description': 'Code expired or invalid'}, status_code=400)
-
-    code_data = _auth_codes.pop(code)
-
-    # Verify PKCE if challenge was provided
-    if code_data['code_challenge']:
-        if not code_verifier:
-            return JSONResponse({'error': 'invalid_grant', 'error_description': 'code_verifier required'}, status_code=400)
-        if not _verify_pkce(code_verifier, code_data['code_challenge']):
-            return JSONResponse({'error': 'invalid_grant', 'error_description': 'PKCE verification failed'}, status_code=400)
-
-    # Verify redirect_uri matches
-    if redirect_uri and redirect_uri != code_data['redirect_uri']:
-        return JSONResponse({'error': 'invalid_grant', 'error_description': 'redirect_uri mismatch'}, status_code=400)
-
-    # Issue access token (encodes api_token:org_id)
-    access_token = _encode_access_token(code_data['api_token'], code_data['org_id'])
-
-    return JSONResponse({
-        'access_token': access_token,
-        'token_type': 'bearer',
-        'scope': 'immojump',
-        'expires_in': 86400,  # 24 hours
-    })
+    if grant_type == 'authorization_code':
+        return _exchange_code(body)
+    if grant_type == 'refresh_token' and _refresh_supported():
+        return _exchange_refresh_token(body)
+    return JSONResponse({'error': 'unsupported_grant_type'}, status_code=400, headers=_TOKEN_HEADERS)
 
 
 async def register(request: Request) -> JSONResponse:
     """RFC 7591: Dynamic Client Registration.
 
-    Accepts any registration request and returns a client_id.
-    Our auth flow doesn't validate client_id — the user authenticates
-    with their immoJUMP API token, not with client credentials.
+    Accepts any registration request. The issued client_id carries its own
+    redirect_uris (sealed), so the redirect check on /oauth/authorize works on
+    every pod and after restarts. A client_id chosen by the client is echoed
+    back for compatibility but cannot be bound to redirect_uris.
     """
     try:
         body = await request.json()
-    except Exception:
+    except ValueError:
+        body = {}
+    if not isinstance(body, dict):
         body = {}
 
-    # Use provided client_name or generate one
     client_name = body.get('client_name', 'MCP Client')
-    client_id = body.get('client_id') or f'immojump-{secrets.token_hex(8)}'
     redirect_uris = body.get('redirect_uris', [])
-
-    _registered_clients[client_id] = {
-        'client_name': client_name,
-        'redirect_uris': redirect_uris,
-    }
+    if not isinstance(redirect_uris, list):
+        redirect_uris = []
+    client_id = body.get('client_id') or _seal('client', {'ru': redirect_uris})
 
     return JSONResponse({
         'client_id': client_id,
         'client_name': client_name,
         'redirect_uris': redirect_uris,
-        'grant_types': ['authorization_code'],
+        'grant_types': _grant_types(),
         'response_types': ['code'],
         'token_endpoint_auth_method': 'none',
     }, status_code=201)
