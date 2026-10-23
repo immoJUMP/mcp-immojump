@@ -492,6 +492,47 @@ class ImmojumpAPIClient:
             payload['target_type'] = target_type
         return self._request('POST', f'/api/v2/immobilien/{immobilie_id}/split-units', json=payload)
 
+    # The merge schemas reject unknown keys (400), so only documented keys go out.
+
+    def immobilien_merge_preview(
+        self,
+        *,
+        immobilie_ids: list[str],
+        primary_id: str | None = None,
+    ) -> Any:
+        payload: dict[str, Any] = {'immobilie_ids': list(immobilie_ids)}
+        if primary_id:
+            payload['primary_id'] = primary_id
+        return self._request('POST', '/api/v2/immobilien/merge/preview', json=payload)
+
+    def immobilien_merge(
+        self,
+        *,
+        primary_id: str,
+        duplicate_ids: list[str],
+        field_choices: dict[str, str] | None = None,
+        block_choices: dict[str, str] | None = None,
+        include_documents: bool = True,
+    ) -> Any:
+        payload = {
+            'primary_id': primary_id,
+            'duplicate_ids': list(duplicate_ids),
+            'field_choices': dict(field_choices or {}),
+            'block_choices': dict(block_choices or {}),
+            'include_documents': bool(include_documents),
+        }
+        return self._request('POST', '/api/v2/immobilien/merge', json=payload)
+
+    def immobilien_merge_logs(self) -> Any:
+        return self._request(
+            'GET',
+            '/api/v2/immobilien/merge/logs',
+            params={'organisation_id': self.credentials.organisation_id},
+        )
+
+    def immobilien_merge_restore(self, *, log_id: str) -> Any:
+        return self._request('POST', f'/api/v2/immobilien/merge/logs/{log_id}/restore')
+
     # ------------------------------------------------------------------
     # Contacts – CRUD
     # ------------------------------------------------------------------
