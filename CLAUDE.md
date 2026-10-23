@@ -34,6 +34,9 @@ Entry points (`pyproject.toml` `[project.scripts]`): `mcp-immojump` (full),
   Stateless: codes, client_ids and tokens are Fernet-sealed with
   `IMMOJUMP_MCP_OAUTH_SECRET`; never add in-memory OAuth state (rolling
   updates run two pods). Without the secret: no refresh_token, error log.
+  Registration is open, so never let a client_id decide where a code goes:
+  `_is_trusted_redirect` (allowlist + loopback) applies to every request,
+  and PKCE S256 is mandatory.
 
 ## Authentication
 
