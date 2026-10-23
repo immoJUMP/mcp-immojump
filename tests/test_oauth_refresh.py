@@ -340,20 +340,29 @@ class TestMiddlewareSignalsExpiry:
 # Authorize page: write access must be obvious
 # ---------------------------------------------------------------------------
 
+def _pkce_params() -> dict[str, str]:
+    return {
+        'redirect_uri': REDIRECT,
+        'code_challenge': _pkce_pair()[1],
+        'code_challenge_method': 'S256',
+    }
+
+
 class TestAuthorizePageExplainsWriteAccess:
     def test_form_says_write_access_is_needed_for_changes(self, secret):
-        resp = _client().get('/oauth/authorize', params={'redirect_uri': REDIRECT})
+        resp = _client().get('/oauth/authorize', params=_pkce_params())
         assert resp.status_code == 200
         assert 'Lesen und ändern' in resp.text
         assert 'Schnittstellen-Zugang' in resp.text
 
     def test_form_names_where_the_user_goes_back_to(self, secret):
-        resp = _client().get('/oauth/authorize', params={'redirect_uri': REDIRECT})
+        resp = _client().get('/oauth/authorize', params=_pkce_params())
         assert 'chatgpt.com' in resp.text
 
     def test_read_only_token_gets_warning_instead_of_silent_connect(self, secret):
         resp = _client().post('/oauth/authorize', data={
             'api_token': 'ijr_' + 'y' * 43, 'org_id': ORG_ID, 'redirect_uri': REDIRECT,
+            'code_challenge': _pkce_pair()[1],
         }, follow_redirects=False)
         assert resp.status_code == 200
         assert 'nur lesen' in resp.text
@@ -363,6 +372,6 @@ class TestAuthorizePageExplainsWriteAccess:
     def test_read_only_token_connects_after_confirmation(self, secret):
         resp = _client().post('/oauth/authorize', data={
             'api_token': 'ijr_' + 'y' * 43, 'org_id': ORG_ID, 'redirect_uri': REDIRECT,
-            'confirm_read_only': '1',
+            'code_challenge': _pkce_pair()[1], 'confirm_read_only': '1',
         }, follow_redirects=False)
         assert resp.status_code == 302

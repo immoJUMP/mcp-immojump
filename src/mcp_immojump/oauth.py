@@ -18,6 +18,12 @@ Any pod with the same secret can read them, so a rollout or a second pod
 mid-flow no longer loses anything, and the API token never appears in clear
 in anything handed to the client.
 
+Who may receive a code: registration is open (DCR without authentication,
+client_id metadata documents are not fetched), so a client_id vouches for
+nothing. The redirect_uri itself must point to a trusted origin — the AI apps
+we serve, loopback for desktop and CLI clients, or an origin from
+``IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS``. PKCE S256 is required.
+
 Without the secret the server keeps the old behaviour (base64 access token,
 no refresh grant) and logs an error: clients then have to log in again after
 ``expires_in``.
@@ -59,6 +65,24 @@ _CLIENT_TTL = 10 * 365 * 24 * 3600  # registrations practically never expire
 _LEGACY_EXPIRES_IN = 86400
 
 _READ_ONLY_TOKEN_PREFIX = 'ijr_'
+
+_REDIRECT_ORIGINS_ENV = 'IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS'
+
+# Origins (scheme://host[:port]) whose callbacks may receive a code. Every
+# entry is a client seen on the hosted server or documented by its vendor:
+# ChatGPT (also Codex web), Claude.ai/Desktop/mobile (claude.com announced),
+# Cursor (custom scheme and its cloud agents).
+_DEFAULT_REDIRECT_ORIGINS: frozenset[str] = frozenset({
+    'https://chatgpt.com',
+    'https://chat.openai.com',
+    'https://claude.ai',
+    'https://claude.com',
+    'https://www.cursor.com',
+    'cursor://anysphere.cursor-mcp',
+})
+
+# RFC 8252 §7.3: native apps listen on a loopback port of their choice.
+_LOOPBACK_HOSTS: frozenset[str] = frozenset({'localhost', '127.0.0.1', '::1'})
 
 # Fernet tokens are not single-use by themselves. Within one pod a code can
 # be redeemed once; across pods PKCE and the 5-minute lifetime have to do.
@@ -210,11 +234,40 @@ def _verify_pkce(code_verifier: str, code_challenge: str) -> bool:
     return secrets.compare_digest(expected, code_challenge)
 
 
+def _origin(parsed: Any) -> str:
+    host = parsed.hostname or ''
+    if ':' in host:
+        host = f'[{host}]'
+    return f'{parsed.scheme}://{host}' + (f':{parsed.port}' if parsed.port else '')
+
+
+def _redirect_origins() -> frozenset[str]:
+    extra = os.getenv(_REDIRECT_ORIGINS_ENV, '')
+    configured = {o.strip().rstrip('/').lower() for o in extra.split(',') if o.strip()}
+    return _DEFAULT_REDIRECT_ORIGINS | frozenset(configured)
+
+
+def _is_trusted_redirect(redirect_uri: str) -> bool:
+    """True if a code may be sent to redirect_uri — whatever the client_id says."""
+    try:
+        parsed = urlparse(redirect_uri)
+        parsed.port  # raises on a malformed port
+    except ValueError:
+        return False
+    if not parsed.scheme or not parsed.hostname or parsed.fragment:
+        return False
+    if parsed.username is not None or parsed.password is not None:
+        return False
+    if parsed.scheme in ('http', 'https') and parsed.hostname in _LOOPBACK_HOSTS:
+        return True
+    return _origin(parsed) in _redirect_origins()
+
+
 def _redirect_not_registered(client_id: str, redirect_uri: str) -> bool:
     """True if client_id is one of our registrations and doesn't list redirect_uri.
 
-    Unknown client_ids (self-chosen at registration, or from before this
-    version) are not checked — same as before.
+    Only narrows: whether the redirect is trusted at all is decided by
+    ``_is_trusted_redirect`` for every client_id.
     """
     registration = _unseal(client_id, 'client', _CLIENT_TTL)
     if not registration:
@@ -264,6 +317,24 @@ def _grant_error(error: str, description: str) -> JSONResponse:
     return JSONResponse(
         {'error': error, 'error_description': description}, status_code=400, headers=_TOKEN_HEADERS,
     )
+
+
+def _redirect_error(oauth_params: dict[str, str]) -> HTMLResponse | None:
+    """Reasons not to show the form or issue a code, checked on GET and POST."""
+    redirect_uri = oauth_params['redirect_uri']
+    if not redirect_uri:
+        return _html_error('Fehler: redirect_uri fehlt')
+    if not _is_trusted_redirect(redirect_uri):
+        logger.warning('OAuth: Rücksprung nicht freigegeben: %r', redirect_uri[:200])
+        return _html_error(
+            f'Fehler: Rücksprung zu {_return_host(redirect_uri)} ist nicht freigegeben. '
+            'immoJUMP verbindet sich nur mit bekannten KI-Apps.'
+        )
+    if _redirect_not_registered(oauth_params['client_id'], redirect_uri):
+        return _html_error('Fehler: redirect_uri stimmt nicht mit der Registrierung überein')
+    if not oauth_params['code_challenge']:
+        return _html_error('Fehler: PKCE (code_challenge) ist erforderlich')
+    return None
 
 
 def _html_error(message: str) -> HTMLResponse:
@@ -338,11 +409,20 @@ def _return_host(redirect_uri: str) -> str:
     return urlparse(redirect_uri).hostname or redirect_uri
 
 
+def _return_target(redirect_uri: str) -> str:
+    """Where the code goes, as the user should read it on the login page."""
+    host = _return_host(redirect_uri)
+    if host in _LOOPBACK_HOSTS:
+        # Any local program can listen there; the client_id proves nothing.
+        return 'einem <strong>Programm auf diesem Computer</strong>'
+    return f'<strong>{html.escape(host)}</strong>'
+
+
 def _login_form(oauth_params: dict[str, str]) -> HTMLResponse:
-    host = html.escape(_return_host(oauth_params['redirect_uri']))
+    target = _return_target(oauth_params['redirect_uri'])
     return _page(f"""
         <p class="subtitle">Verbinde deine KI-App mit deinem immoJUMP-Konto.<br>
-        Danach geht es zurück zu <strong>{host}</strong>.</p>
+        Danach geht es zurück zu {target}.</p>
         <p class="note">Den Zugangsschlüssel legst du in immoJUMP unter
         <strong>Einstellungen → Schnittstellen-Zugang → Zugänge für andere</strong> an.
         Soll die KI Objekte, Kontakte oder Deals auch <strong>anlegen oder ändern</strong>,
@@ -423,16 +503,15 @@ async def authorize(request: Request) -> Response:
             'redirect_uri': params.get('redirect_uri', ''),
             'state': params.get('state', ''),
             'code_challenge': params.get('code_challenge', ''),
+            'code_challenge_method': params.get('code_challenge_method', ''),
             'scope': params.get('scope', ''),
         }
-        code_challenge_method = params.get('code_challenge_method', '')
 
-        if not oauth_params['redirect_uri']:
-            return _html_error('Fehler: redirect_uri fehlt')
-        if code_challenge_method and code_challenge_method != 'S256':
-            return _html_error('Fehler: Nur S256 PKCE wird unterstützt')
-        if _redirect_not_registered(oauth_params['client_id'], oauth_params['redirect_uri']):
-            return _html_error('Fehler: redirect_uri stimmt nicht mit der Registrierung überein')
+        error = _redirect_error(oauth_params)
+        if error:
+            return error
+        if oauth_params['code_challenge_method'] != 'S256':
+            return _html_error('Fehler: Nur PKCE mit S256 wird unterstützt')
         return _login_form(oauth_params)
 
     # POST: process form submission
@@ -444,16 +523,20 @@ async def authorize(request: Request) -> Response:
         'redirect_uri': str(form.get('redirect_uri', '')).strip(),
         'state': str(form.get('state', '')).strip(),
         'code_challenge': str(form.get('code_challenge', '')).strip(),
+        # Missing on forms rendered before this version; codes are verified
+        # as S256 either way, so only a wrong value is refused.
+        'code_challenge_method': str(form.get('code_challenge_method', 'S256')).strip() or 'S256',
         'scope': str(form.get('scope', '')).strip(),
     }
     redirect_uri = oauth_params['redirect_uri']
 
     if not api_token or not org_id:
         return _html_error('Fehler: Zugangsschlüssel und Organisations-ID sind erforderlich')
-    if not redirect_uri:
-        return _html_error('Fehler: redirect_uri fehlt')
-    if _redirect_not_registered(oauth_params['client_id'], redirect_uri):
-        return _html_error('Fehler: redirect_uri stimmt nicht mit der Registrierung überein')
+    error = _redirect_error(oauth_params)
+    if error:
+        return error
+    if oauth_params['code_challenge_method'] != 'S256':
+        return _html_error('Fehler: Nur PKCE mit S256 wird unterstützt')
 
     if api_token.startswith(_READ_ONLY_TOKEN_PREFIX) and form.get('confirm_read_only') != '1':
         return _read_only_confirmation(oauth_params, api_token, org_id)
@@ -503,12 +586,14 @@ def _exchange_code(body: dict[str, Any]) -> JSONResponse:
     if not code_data or not _redeem_once(code):
         return _grant_error('invalid_grant', 'Code expired or invalid')
 
-    # Verify PKCE if challenge was provided
-    if code_data['cc']:
-        if not code_verifier:
-            return _grant_error('invalid_grant', 'code_verifier required')
-        if not _verify_pkce(code_verifier, code_data['cc']):
-            return _grant_error('invalid_grant', 'PKCE verification failed')
+    # /oauth/authorize only mints codes with a challenge; one without is
+    # older than that rule or forged.
+    if not code_data['cc']:
+        return _grant_error('invalid_grant', 'Code was issued without PKCE')
+    if not code_verifier:
+        return _grant_error('invalid_grant', 'code_verifier required')
+    if not _verify_pkce(code_verifier, code_data['cc']):
+        return _grant_error('invalid_grant', 'PKCE verification failed')
 
     if redirect_uri and redirect_uri != code_data['ru']:
         return _grant_error('invalid_grant', 'redirect_uri mismatch')
@@ -561,10 +646,12 @@ async def token(request: Request) -> JSONResponse:
 async def register(request: Request) -> JSONResponse:
     """RFC 7591: Dynamic Client Registration.
 
-    Accepts any registration request. The issued client_id carries its own
-    redirect_uris (sealed), so the redirect check on /oauth/authorize works on
-    every pod and after restarts. A client_id chosen by the client is echoed
-    back for compatibility but cannot be bound to redirect_uris.
+    Open to anyone, so it only keeps redirect_uris that /oauth/authorize
+    would accept anyway (RFC 7591 §3.2.1 lets the server replace requested
+    values) and refuses a registration left with none. The issued client_id
+    carries them sealed, so the exact-match check on /oauth/authorize works
+    on every pod and after restarts. A client_id chosen by the client is
+    echoed back for compatibility but cannot be bound to redirect_uris.
     """
     try:
         body = await request.json()
@@ -577,6 +664,13 @@ async def register(request: Request) -> JSONResponse:
     redirect_uris = body.get('redirect_uris', [])
     if not isinstance(redirect_uris, list):
         redirect_uris = []
+    trusted = [u for u in redirect_uris if isinstance(u, str) and _is_trusted_redirect(u)]
+    if redirect_uris and not trusted:
+        return JSONResponse({
+            'error': 'invalid_redirect_uri',
+            'error_description': 'No redirect_uri points to a trusted origin.',
+        }, status_code=400)
+    redirect_uris = trusted
     client_id = body.get('client_id') or _seal('client', {'ru': redirect_uris})
 
     return JSONResponse({
