@@ -14,8 +14,8 @@ from mcp_immojump.oauth import (
     decode_access_token,
     _encode_access_token,
     _verify_pkce,
-    _auth_codes,
 )
+from mcp_immojump import oauth
 
 
 @pytest.fixture()
@@ -23,16 +23,17 @@ def oauth_client(monkeypatch):
     """Starlette test client with OAuth routes mounted.
     Points IMMOJUMP_BASE_URL to unreachable host so token validation is skipped."""
     monkeypatch.setenv('IMMOJUMP_BASE_URL', 'http://127.0.0.1:1')  # unreachable
+    monkeypatch.delenv('IMMOJUMP_MCP_OAUTH_SECRET', raising=False)
     app = Starlette(routes=create_oauth_routes())
     return TestClient(app, base_url='https://mcp.immojump.de')
 
 
 @pytest.fixture(autouse=True)
 def _clear_codes():
-    """Clear auth codes between tests."""
-    _auth_codes.clear()
+    """Fresh keys and redeemed-code memory between tests."""
+    oauth._reset_keys_for_tests()
     yield
-    _auth_codes.clear()
+    oauth._reset_keys_for_tests()
 
 
 def _pkce_pair():
@@ -291,11 +292,11 @@ class TestTokenExchange:
         })
         assert resp2.status_code == 400
 
-    def test_expired_code_fails(self, oauth_client):
+    def test_expired_code_fails(self, oauth_client, monkeypatch):
         """Expired auth codes must be rejected."""
         code = self._get_code(oauth_client)
-        # Manually expire the code
-        _auth_codes[code]['expires'] = 0
+        real_time = oauth.time.time
+        monkeypatch.setattr(oauth.time, 'time', lambda: real_time() + oauth._CODE_TTL + 120)
         resp = oauth_client.post('/oauth/token', data={
             'grant_type': 'authorization_code', 'code': code,
         })

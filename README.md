@@ -16,10 +16,13 @@ API-Endpoints.
    - Streamable HTTP: `https://mcp.immojump.de/mcp`
    - SSE (Claude Desktop): `https://mcp.immojump.de/sse`
 3. Der Client leitet in den OAuth-Flow um. Dort eingeben:
-   - **API-Token**: in immoJUMP unter *Einstellungen → API-Zugang → Token
-     generieren*.
-   - **Organisation-ID**: ist in der App-URL sichtbar, z. B.
-     `https://immojump.de/o/<org-id>/…`.
+   - **Zugangsschlüssel**: in immoJUMP unter *Einstellungen →
+     Schnittstellen-Zugang → Zugänge für andere*. Soll die KI Objekte,
+     Kontakte oder Deals anlegen oder ändern, „Lesen und ändern“ wählen
+     (`ijw_…`). Ein Schlüssel „Nur lesen“ (`ijr_…`) bekommt bei jeder
+     Änderung `403 READ_ONLY_TOKEN`; die Seite warnt vor dem Verbinden.
+   - **Organisations-ID**: steht ebenfalls unter *Einstellungen →
+     Schnittstellen-Zugang*.
 4. Nach "Verbinden" ist der Connector einsatzbereit. Probiert z. B.:
    - *"Wie viele Immobilien habe ich?"*
    - *"Analysiere das Exposé und erstelle die Einheit in immoJUMP."*
@@ -287,6 +290,24 @@ codex mcp remove immojump-local
 4. Job pollen mit `contacts_job_status`
 5. Bei Bedarf `contacts_job_resume` oder `contacts_job_cancel`
 
+## OAuth-Betrieb
+
+Der OAuth-Flow (für ChatGPT & Co.) ist zustandslos: Codes, Client-
+Registrierungen, Access- und Refresh-Tokens sind mit Fernet (AES + HMAC)
+versiegelt. Jeder Pod mit demselben Schlüssel kann sie lesen; ein Rollout
+mitten im Login verliert nichts, und der API-Schlüssel steht in keinem
+Token im Klartext.
+
+| Variable | Bedeutung |
+|---|---|
+| `IMMOJUMP_MCP_OAUTH_SECRET` | Pflicht für Refresh-Tokens. Mind. 32 zufällige Zeichen, auf allen Pods gleich. Komma-getrennt zum Rotieren: der erste versiegelt, alle entschlüsseln. |
+
+Lebensdauer: Access-Token 24 h, Refresh-Token 90 Tage (jeder Refresh gibt
+einen neuen aus), Code 5 min. Beim Refresh fragt der Server immoJUMP, ob der
+Schlüssel noch gilt — ein in immoJUMP gelöschter Zugang beendet die
+Verbindung. Alte base64-Access-Tokens (vor dieser Version) werden weiter
+angenommen.
+
 ## Entwicklung
 
 Tests:
@@ -309,10 +330,19 @@ CI:
 
 ### "Ungueltiger Token" / 401 beim OAuth-Login
 
-- API-Token in immoJUMP neu generieren (Einstellungen → API-Zugang).
+- Zugangsschlüssel in immoJUMP neu anlegen (Einstellungen → Schnittstellen-Zugang).
 - Sicherstellen, dass der Token zur Organisation-ID passt, die im
   Formular eingetragen wurde. Die Org-ID steht in der App-URL nach
   `/o/` — nicht verwechseln mit einer Vertragsnummer o.ä.
+
+### ChatGPT fragt jeden Tag neu nach dem Schlüssel / geplante Aufgaben scheitern
+
+Der Server gibt einen `refresh_token` aus, aber nur, wenn
+`IMMOJUMP_MCP_OAUTH_SECRET` gesetzt ist (siehe *OAuth-Betrieb*). Ohne die Variable
+steht im Log beim Start ein Fehler, und Clients müssen sich nach 24 h neu
+anmelden. Schreibende Aktionen in ChatGPT-„geplanten Aufgaben“ können
+außerdem auf eine Freigabe warten — das entscheidet ChatGPT, nicht dieser
+Server.
 
 ### `403 Origin not allowed` beim Verbinden
 

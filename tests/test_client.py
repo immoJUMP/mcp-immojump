@@ -111,3 +111,33 @@ def test_pipeline_import_yaml_sends_query_and_content_type():
     assert captured['query']['organisation_id'] == 'org-1'
     assert captured['content_type'] == 'application/x-yaml'
     assert 'pipeline:' in captured['body']
+
+
+def _read_only_403(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(403, json={
+        'message': (
+            'Dieser Zugangsschlüssel darf nur lesen. Zum Ändern lege unter Einstellungen → '
+            'Schnittstellen-Zugang einen Zugang mit „Lesen und ändern" an.'
+        ),
+        'code': 'READ_ONLY_TOKEN',
+    })
+
+
+def test_read_only_token_error_tells_user_what_to_do():
+    """A read-only key must not end in a bare 403 the model retries forever.
+
+    The rendered error is what ChatGPT/Claude shows: it names the fix (new
+    key with write access, reconnect the app) and tells the model to stop.
+    """
+    from mcp_immojump.client import ImmojumpAPIError
+
+    creds = ImmojumpCredentials(
+        base_url='http://localhost:8081', token='ijr_abc', organisation_id='org-1',
+    )
+    client = ImmojumpAPIClient(creds, transport=httpx.MockTransport(_read_only_403))
+    with pytest.raises(ImmojumpAPIError) as exc:
+        client._request('POST', '/api/immobilien', json={'name': 'X'})
+    text = str(exc.value)
+    assert 'Lesen und ändern' in text
+    assert 'neu verbinden' in text
+    assert 'nicht erneut' in text.lower()

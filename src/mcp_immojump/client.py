@@ -220,6 +220,18 @@ def _render_hints(payload: dict[str, Any], message: str) -> str:
     return text
 
 
+# The backend's READ_ONLY_TOKEN message says how to get a write key, but not
+# that the AI app keeps using the old one until it is reconnected — and the
+# model otherwise retries the write a few times before giving up.
+_READ_ONLY_NEXT_STEP = (
+    'So geht es weiter: In immoJUMP unter Einstellungen → Schnittstellen-Zugang → '
+    'Zugänge für andere einen Zugang mit „Lesen und ändern“ anlegen, dann die '
+    'immoJUMP-Verbindung in der KI-App (z. B. ChatGPT → Einstellungen → Apps/Connectors) '
+    'trennen und mit dem neuen Schlüssel neu verbinden. Nicht erneut versuchen: '
+    'Mit dem aktuellen Schlüssel scheitert jede Änderung.'
+)
+
+
 class ImmojumpAPIError(RuntimeError):
     """Raised when the ImmoJUMP API returns an error response.
 
@@ -235,6 +247,8 @@ class ImmojumpAPIError(RuntimeError):
         rendered = f'ImmoJUMP API error ({status_code}): {message}'
         if hints:
             rendered = f'{rendered} — {hints}'
+        if status_code == 403 and self.payload.get('code') == 'READ_ONLY_TOKEN':
+            rendered = f'{rendered} — {_READ_ONLY_NEXT_STEP}'
         super().__init__(rendered)
         self.status_code = status_code
         self.message = message
