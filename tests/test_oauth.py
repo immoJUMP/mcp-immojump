@@ -213,26 +213,34 @@ class TestAuthorize:
 # ---------------------------------------------------------------------------
 
 class TestTokenExchange:
-    def _get_code(self, oauth_client, verifier=None, challenge=None):
-        """Helper: submit authorize form and extract the code."""
+    verifier: str = ''
+
+    def _get_code(self, oauth_client, challenge=None):
+        """Helper: submit authorize form and extract the code.
+
+        Without an explicit challenge a fresh PKCE pair is used and the
+        verifier kept in ``self.verifier``.
+        """
+        if challenge is None:
+            self.verifier, challenge = _pkce_pair()
         resp = oauth_client.post('/oauth/authorize', data={
             'api_token': 'my-api-token',
             'org_id': 'my-org-id',
             'redirect_uri': 'http://localhost:3000/callback',
             'state': 'test',
-            'code_challenge': challenge or '',
+            'code_challenge': challenge,
             'client_id': 'test',
         }, follow_redirects=False)
         location = resp.headers['location']
         params = parse_qs(urlparse(location).query)
         return params['code'][0]
 
-    def test_exchange_without_pkce(self, oauth_client):
-        """Token exchange works when no PKCE challenge was set."""
+    def test_exchange_returns_decodable_access_token(self, oauth_client):
         code = self._get_code(oauth_client)
         resp = oauth_client.post('/oauth/token', data={
             'grant_type': 'authorization_code',
             'code': code,
+            'code_verifier': self.verifier,
             'redirect_uri': 'http://localhost:3000/callback',
         })
         assert resp.status_code == 200
@@ -246,7 +254,7 @@ class TestTokenExchange:
     def test_exchange_with_valid_pkce(self, oauth_client):
         """Token exchange succeeds with correct PKCE verifier."""
         verifier, challenge = _pkce_pair()
-        code = self._get_code(oauth_client, verifier=verifier, challenge=challenge)
+        code = self._get_code(oauth_client, challenge=challenge)
         resp = oauth_client.post('/oauth/token', data={
             'grant_type': 'authorization_code',
             'code': code,
@@ -283,12 +291,12 @@ class TestTokenExchange:
         code = self._get_code(oauth_client)
         # First exchange succeeds
         resp1 = oauth_client.post('/oauth/token', data={
-            'grant_type': 'authorization_code', 'code': code,
+            'grant_type': 'authorization_code', 'code': code, 'code_verifier': self.verifier,
         })
         assert resp1.status_code == 200
         # Second exchange fails
         resp2 = oauth_client.post('/oauth/token', data={
-            'grant_type': 'authorization_code', 'code': code,
+            'grant_type': 'authorization_code', 'code': code, 'code_verifier': self.verifier,
         })
         assert resp2.status_code == 400
 
@@ -298,7 +306,7 @@ class TestTokenExchange:
         real_time = oauth.time.time
         monkeypatch.setattr(oauth.time, 'time', lambda: real_time() + oauth._CODE_TTL + 120)
         resp = oauth_client.post('/oauth/token', data={
-            'grant_type': 'authorization_code', 'code': code,
+            'grant_type': 'authorization_code', 'code': code, 'code_verifier': self.verifier,
         })
         assert resp.status_code == 400
 
@@ -321,6 +329,7 @@ class TestTokenExchange:
         resp = oauth_client.post('/oauth/token', data={
             'grant_type': 'authorization_code',
             'code': code,
+            'code_verifier': self.verifier,
             'redirect_uri': 'http://evil.example.com/steal',
         })
         assert resp.status_code == 400
@@ -331,5 +340,6 @@ class TestTokenExchange:
         resp = oauth_client.post('/oauth/token', json={
             'grant_type': 'authorization_code',
             'code': code,
+            'code_verifier': self.verifier,
         })
         assert resp.status_code == 200

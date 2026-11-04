@@ -301,6 +301,18 @@ Token im Klartext.
 | Variable | Bedeutung |
 |---|---|
 | `IMMOJUMP_MCP_OAUTH_SECRET` | Pflicht für Refresh-Tokens. Mind. 32 zufällige Zeichen, auf allen Pods gleich. Komma-getrennt zum Rotieren: der erste versiegelt, alle entschlüsseln. |
+| `IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS` | Zusätzliche Rücksprung-Origins (`https://host[:port]`, komma-getrennt), z. B. für einen selbst gehosteten n8n-MCP-Client. Ergänzt die Vorgaben, ersetzt sie nicht. |
+
+**Wohin ein Code darf:** Die Registrierung ist offen, eine `client_id` belegt
+also nichts. `/oauth/authorize` gibt Codes deshalb nur an Rücksprung-Adressen
+auf `chatgpt.com`, `chat.openai.com`, `claude.ai`, `claude.com`,
+`www.cursor.com`, `cursor://anysphere.cursor-mcp` und Loopback
+(`http://localhost`, `127.0.0.1`, `[::1]`, beliebiger Port) — plus
+`IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS`. PKCE mit `S256` ist Pflicht.
+Bestehende Verbindungen (Access-/Refresh-Tokens) betrifft das nicht, nur neue
+Anmeldungen. Clients, die nur einen festen Schlüssel brauchen, verbinden sich
+ohne OAuth per Header `Authorization: Bearer <Zugangsschlüssel>` und
+`X-Organisation-Id`.
 
 Lebensdauer: Access-Token 24 h, Refresh-Token 90 Tage (jeder Refresh gibt
 einen neuen aus), Code 5 min. Beim Refresh fragt der Server immoJUMP, ob der
@@ -343,6 +355,13 @@ steht im Log beim Start ein Fehler, und Clients müssen sich nach 24 h neu
 anmelden. Schreibende Aktionen in ChatGPT-„geplanten Aufgaben“ können
 außerdem auf eine Freigabe warten — das entscheidet ChatGPT, nicht dieser
 Server.
+
+### „Rücksprung zu … ist nicht freigegeben“ beim Anmelden
+
+Der Client will den Code an eine Adresse schicken, die nicht in der
+Rücksprung-Allowlist steht (siehe *OAuth-Betrieb*). Für einen eigenen,
+vertrauenswürdigen Client die Origin in `IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS`
+eintragen — oder ohne OAuth per Header verbinden.
 
 ### `403 Origin not allowed` beim Verbinden
 

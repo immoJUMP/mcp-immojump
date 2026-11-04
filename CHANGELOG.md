@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
 ## [Unreleased]
+### Security
+- OAuth: `/oauth/authorize` gibt Codes nur noch an Rücksprung-Adressen auf
+  bekannten KI-Apps (ChatGPT, Claude, Cursor), Loopback und Origins aus
+  `IMMOJUMP_MCP_OAUTH_REDIRECT_ORIGINS`. Vorher war für nicht selbst
+  ausgestellte `client_id`s jede `redirect_uri` erlaubt.
+- OAuth: PKCE mit `S256` ist Pflicht; Codes ohne Challenge werden nicht mehr
+  ausgestellt oder eingetauscht.
+- `/oauth/register` behält nur freigegebene `redirect_uris` und lehnt eine
+  Registrierung ohne solche mit `invalid_redirect_uri` ab.
+- Die Anmeldeseite nennt Loopback-Rücksprünge „ein Programm auf diesem Computer“.
+
 ### Fixed
 - OAuth: `/oauth/token` gibt einen `refresh_token` aus und akzeptiert
   `grant_type=refresh_token`. Vorher meldete der Server `expires_in` 24 h ohne
