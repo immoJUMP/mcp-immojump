@@ -95,7 +95,14 @@ def register(mcp):
         - description: string (plain text or HTML)
         - status_id: integer ID of a pipeline status — binds this template
           to a pipeline phase (auto-created when entity enters that status)
-        - assigned_to_id: UUID of user to auto-assign
+        - assignee_mode: who gets the created task (default "fixed"):
+          - "fixed": the user in assigned_to_id (optionally with assigned_role_id)
+          - "role": only assigned_role_id (assigned_to_id is dropped)
+          - "actor": whoever moved the entity into the status. assigned_to_id /
+            assigned_role_id are the fallback when no human changed the status
+            (API access token ijr_/ijw_, n8n, bots, ImmoMetrica import) or the
+            person left the organisation; without them the task stays unassigned.
+        - assigned_to_id: integer user ID to auto-assign (fallback in mode "actor")
         - assigned_role_id: UUID of a role to auto-assign
         - start_in_days: integer — auto-set start date N days after creation
         - end_in_days: integer — auto-set due date N days after creation
@@ -136,6 +143,10 @@ def register(mcp):
         - `replace_outcomes` (bool, optional): default false, merge by outcome.id.
         - `if_updated_at` (string, optional): optimistic concurrency guard (409 on mismatch).
         - `dry_run` (bool, optional): return diff preview without persisting.
+
+        Fields as in activity_template_create, e.g. {"assignee_mode": "actor"}
+        to give the task to whoever changes the status (assigned_to_id /
+        assigned_role_id stay as fallback).
 
         Same reference rule as activity_template_create: target_status_id,
         template_id and next_activity_template_id must belong to the template's

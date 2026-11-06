@@ -284,3 +284,21 @@ def test_activity_template_update_dry_run_returns_diff_and_does_not_persist():
     assert 'title' in preview['changed_fields']
     assert 'outcomes' in preview['changed_fields']
     assert seen_put['called'] is False
+
+
+def test_activity_template_update_passes_assignee_mode_through():
+    """Backend #2262: assignee_mode muss unverändert im PUT ankommen."""
+    template = _base_template()
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == 'GET':
+            return httpx.Response(200, json=template)
+        seen['body'] = _json_body(request)
+        return httpx.Response(200, json={**template, 'assignee_mode': 'actor'})
+
+    client = _client_with(handler)
+    client.activity_template_update(template_id='tmpl-1', data={'assignee_mode': 'actor', 'assigned_to_id': 7})
+
+    assert seen['body'] == {'assignee_mode': 'actor', 'assigned_to_id': 7}
+
