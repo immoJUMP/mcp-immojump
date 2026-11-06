@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
 ## [Unreleased]
+### Added
+- `activity_template_create`/`activity_template_update` beschreiben
+  `assignee_mode` (`fixed`, `role`, `actor` = „wer den Status ändert“) samt
+  Ausweichregel; `assigned_to_id` ist eine Nutzer-ID (Zahl), keine UUID.
+
 ### Fixed
 - OAuth: `/oauth/token` gibt einen `refresh_token` aus und akzeptiert
   `grant_type=refresh_token`. Vorher meldete der Server `expires_in` 24 h ohne
