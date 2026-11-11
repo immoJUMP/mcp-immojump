@@ -67,6 +67,10 @@ def register(mcp):
         an unreadable number or date is rejected with HTTP 400 and the field
         named in errors, nothing is written.
         - einheit: unit name, e.g. "WE 1" or "EG links"
+        - floor: floor of the unit as a string: UG, EG, 1. OG ... 30. OG or DG.
+          Usual spellings are normalised ("Erdgeschoss", "1.OG", "OG 3",
+          "Souterrain", "Dachgeschoss"); a bare number (2, "2") or "2. Stock"
+          is rejected with HTTP 400. null or left out = no floor
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
         - rooms: number of rooms, e.g. 2.5
@@ -114,6 +118,10 @@ def register(mcp):
         immobilie_id, source, ...) may be sent back unchanged and are not
         written. Fields:
         - einheit: unit name
+        - floor: floor of the unit as a string: UG, EG, 1. OG ... 30. OG or DG.
+          Usual spellings are normalised ("Erdgeschoss", "1.OG", "OG 3",
+          "Souterrain", "Dachgeschoss"); a bare number (2, "2") or "2. Stock"
+          returns 400. null clears the floor
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
         - rooms: number of rooms

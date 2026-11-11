@@ -6,6 +6,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 ### Added
+- `units_create`/`units_update` nennen das Einheitenfeld `floor` (Etage):
+  `UG`, `EG`, `1. OG` … `30. OG`, `DG`; übliche Schreibweisen wie
+  „Erdgeschoss“, „1.OG“, „Souterrain“ normalisiert das Backend, `null` leert.
 - `activity_template_create`/`activity_template_update` beschreiben
   `assignee_mode` (`fixed`, `role`, `actor` = „wer den Status ändert“) samt
   Ausweichregel; `assigned_to_id` ist eine Nutzer-ID (Zahl), keine UUID.
