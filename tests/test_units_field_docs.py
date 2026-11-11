@@ -35,6 +35,7 @@ BACKEND_FIELDS = (
     'last_rent_increase_date',
     'soll_rent_from',
     'planned_sale_date',
+    'floor',
 )
 UNIT_TYPES = ('wohnen', 'gewerbe', 'stellplatz', 'garage', 'sonstiges')
 # Keys the old description advertised. The backend never read any of them.
@@ -181,3 +182,15 @@ def test_planned_sale_date_is_a_sale_at_month_end(tools, tool_name) -> None:
     line = _field_line(tools[tool_name].description, 'planned_sale_date')
     for term in ('end of', 'month', 'YYYY-MM-DD', 'DD.MM.YYYY', 'null'):
         assert term in line, f'{tool_name}: planned_sale_date does not mention {term}'
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+def test_floor_names_the_canonical_values(tools, tool_name) -> None:
+    """immo-calc PR #2324 (11/2026): unit.floor is its own field. The backend stores
+    UG, EG, 1. OG ... 30. OG or DG and normalises the usual spellings ("Erdgeschoss",
+    "1.OG", "Souterrain"); a bare number or "2. Stock" is a 400. The old description
+    advertised "stockwerk", which the backend never read."""
+    line = _field_line(tools[tool_name].description, 'floor')
+    for term in ('UG', 'EG', '1. OG', '30. OG', 'DG', 'Erdgeschoss', '1.OG', 'Souterrain',
+                 'string', '400', 'null'):
+        assert term in line, f'{tool_name}: floor does not mention {term}'
