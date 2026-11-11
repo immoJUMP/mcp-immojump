@@ -71,6 +71,11 @@ def register(mcp):
           Usual spellings are normalised ("Erdgeschoss", "1.OG", "OG 3",
           "Souterrain", "Dachgeschoss"); a bare number (2, "2") or "2. Stock"
           is rejected with HTTP 400. null or left out = no floor
+        - bad_erneuert, boden_erneuert: year the bathroom (Bad) or the floors
+          (Böden) of this unit were last renovated, as a whole number between
+          1800 and the current year, e.g. 2019 (a digit string "2019" is
+          accepted too). A date or "2015/16" is rejected with HTTP 400.
+          null, "" or left out = not recorded
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
         - rooms: number of rooms, e.g. 2.5
@@ -122,6 +127,10 @@ def register(mcp):
           Usual spellings are normalised ("Erdgeschoss", "1.OG", "OG 3",
           "Souterrain", "Dachgeschoss"); a bare number (2, "2") or "2. Stock"
           returns 400. null clears the floor
+        - bad_erneuert, boden_erneuert: year the bathroom (Bad) or the floors
+          (Böden) of this unit were last renovated, as a whole number between
+          1800 and the current year, e.g. 2019. A date or "2015/16" returns 400.
+          null or "" clears the year
         - livingspace: area in m2; immobilien_split_units splits the purchase
           price in proportion to it. Keep 0 for garage and stellplatz.
         - rooms: number of rooms

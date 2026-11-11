@@ -36,6 +36,8 @@ BACKEND_FIELDS = (
     'soll_rent_from',
     'planned_sale_date',
     'floor',
+    'bad_erneuert',
+    'boden_erneuert',
 )
 UNIT_TYPES = ('wohnen', 'gewerbe', 'stellplatz', 'garage', 'sonstiges')
 # Keys the old description advertised. The backend never read any of them.
@@ -86,10 +88,15 @@ def test_unit_write_tools_say_unknown_keys_are_rejected(tools, tool_name) -> Non
 
 
 def _field_line(description: str, field: str) -> str:
-    """The bullet that documents ``field``, including its wrapped continuation lines."""
+    """The bullet that documents ``field``, including its wrapped continuation lines.
+
+    A bullet may document several fields at once ("- lease_start_date,
+    last_rent_increase_date: ...")."""
     lines = description.splitlines()
     for index, line in enumerate(lines):
-        if line.strip().startswith(f'- {field}:'):
+        stripped = line.strip()
+        names = stripped[2:].split(':', 1)[0].split(',') if stripped.startswith('- ') else []
+        if ':' in stripped and field in (name.strip() for name in names):
             indent = len(line) - len(line.lstrip())
             bullet = [line.strip()]
             for follow in lines[index + 1:]:
@@ -194,3 +201,15 @@ def test_floor_names_the_canonical_values(tools, tool_name) -> None:
     for term in ('UG', 'EG', '1. OG', '30. OG', 'DG', 'Erdgeschoss', '1.OG', 'Souterrain',
                  'string', '400', 'null'):
         assert term in line, f'{tool_name}: floor does not mention {term}'
+
+
+@pytest.mark.parametrize('tool_name', ['units_create', 'units_update'])
+@pytest.mark.parametrize('field', ['bad_erneuert', 'boden_erneuert'])
+def test_renovation_years_are_whole_years(tools, tool_name, field) -> None:
+    """immo-calc PR #2327 (11/2026): the house view shows per apartment when the
+    bathroom (bad_erneuert) and the floors (boden_erneuert) were last renewed. The
+    backend takes a year between 1800 and the current year as a whole number;
+    "" or null clears it, anything else (a date, "2015/16") is a 400."""
+    line = _field_line(tools[tool_name].description, field)
+    for term in ('year', 'whole number', '1800', 'current year', '400', 'null'):
+        assert term in line, f'{tool_name}: {field} does not mention {term}'
