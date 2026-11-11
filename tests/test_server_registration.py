@@ -15,17 +15,17 @@ def _tool_names(mcp_instance) -> set[str]:
 
 def test_standard_server_tool_count():
     from mcp_immojump.servers.standard import mcp
-    assert _tool_count(mcp) == 93
+    assert _tool_count(mcp) == 97
 
 
 def test_profi_server_tool_count():
     from mcp_immojump.servers.profi import mcp
-    assert _tool_count(mcp) == 137
+    assert _tool_count(mcp) == 141
 
 
 def test_full_server_tool_count():
     from mcp_immojump.server import mcp
-    assert _tool_count(mcp) == 178
+    assert _tool_count(mcp) == 182
 
 
 def test_standard_is_subset_of_profi():
@@ -89,7 +89,7 @@ def test_every_tier_includes_connection_test():
 
 def test_properties_server_tool_count():
     from mcp_immojump.servers.properties import mcp
-    assert _tool_count(mcp) == 45
+    assert _tool_count(mcp) == 49
 
 
 def test_crm_server_tool_count():
