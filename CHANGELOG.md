@@ -6,6 +6,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 ### Added
+- `units_create`/`units_update` nennen `bad_erneuert` und `boden_erneuert`:
+  Jahr der letzten Erneuerung von Bad bzw. Böden der Einheit als ganze Zahl
+  (1800 bis laufendes Jahr); `null` oder `""` leert, sonst HTTP 400.
 - `units_create`/`units_update` nennen das Einheitenfeld `floor` (Etage):
   `UG`, `EG`, `1. OG` … `30. OG`, `DG`; übliche Schreibweisen wie
   „Erdgeschoss“, „1.OG“, „Souterrain“ normalisiert das Backend, `null` leert.
